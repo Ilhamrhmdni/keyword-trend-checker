@@ -226,7 +226,7 @@ elif option == "Filter Produk Shoptik":
                             <li>Produk tidak lolos filter: <strong>{len(removed_df)}</strong></li>
                             <li>Duplikat berdasarkan link: <strong>{deleted_dupes}</strong></li>
                             <li>Rata-rata rating: <strong>{avg_rating}</strong></li>
-                            <li>Rata-rata tren (%): <strong>{avg_trend}%</strong></li>
+                            <li>Rata-rata tren: <strong>{avg_trend}%</strong></li>
                         </ul>
                     </div>
                     """, unsafe_allow_html=True)
