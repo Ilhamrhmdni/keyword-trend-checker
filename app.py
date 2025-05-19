@@ -68,13 +68,13 @@ if option == "Filter Produk Extension Xyra":
     st.markdown("Hanya Support File Export Extensi Xyra")
     # Input filter
     st.sidebar.title("🚬 Filter Black")
-    stok_min = st.sidebar.number_input("Batas minimal stok", min_value=0, value=10,
+    stok_min = st.sidebar.number_input("Batas minimal stok", min_value=0, value=5,
                                        help="Produk dengan stok kurang dari nilai ini akan diabaikan")
     harga_min = st.sidebar.number_input("Batas minimal harga produk", min_value=0.0, value=0.0,
                                        help="Hanya produk di atas harga ini yang akan diproses")
-    terjual_min = st.sidebar.number_input("Min terjual per bulan", min_value=0, value=5,
+    terjual_min = st.sidebar.number_input("Min terjual per bulan", min_value=0, value=30,
                                           help="Produk dengan penjualan bulanan kurang dari nilai ini tidak akan diproses")
-    komisi_persen_min = st.sidebar.number_input("Min komisi (%)", min_value=0.0, value=0.0,
+    komisi_persen_min = st.sidebar.number_input("Min komisi (%)", min_value=0.0, value=1.0,
                                                 help="Produk dengan komisi kurang dari persentase ini tidak akan diproses")
     komisi_rp_min = st.sidebar.number_input("Min komisi (Rp)", min_value=0.0,value=500.0,
                                             help="Produk dengan komisi kurang dari nilai ini tidak akan diproses")
