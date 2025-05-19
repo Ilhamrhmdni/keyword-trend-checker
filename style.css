@@ -1,0 +1,112 @@
+body {
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+}
+
+.reportview-container .main .block-container {
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+}
+
+.sidebar .sidebar-content {
+    background-color: #2a2a2a;
+}
+
+.section-title {
+    font-size: 1.4em;
+    font-weight: bold;
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    color: #99ddff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.stat-box {
+    background-color: #333;
+    padding: 1em;
+    border-radius: 10px;
+    margin-bottom: 1em;
+    border: 1px solid #99ddff;
+    color: #e0e0e0;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.stat-box ul {
+    padding-left: 1.2em;
+}
+
+.stat-box li {
+    margin-bottom: 0.4em;
+}
+
+.stButton>button {
+    background-color: #99ddff;
+    color: black;
+    border: none;
+    padding: 0.5em 1em;
+    border-radius: 4px;
+    font-weight: bold;
+    transition: all 0.2s ease-in-out;
+}
+
+.stButton>button:hover {
+    transform: scale(1.05);
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(153, 221, 255, 0.4);
+}
+
+.stDownloadButton>button {
+    background-color: #77ccaa;
+    color: black;
+    border: none;
+    padding: 0.5em 1em;
+    border-radius: 4px;
+    font-weight: bold;
+    transition: all 0.2s ease-in-out;
+}
+
+.stDownloadButton>button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(119, 204, 170, 0.4);
+}
+
+.stTextInput>div>input,
+.stNumberInput>div>input,
+.stSlider>div>div>input,
+.stSelectbox>div>div>select {
+    background-color: #2e2e2e;
+    color: #e0e0e0;
+    border: 1px solid #99ddff;
+    border-radius: 4px;
+    padding: 0.4em 0.6em;
+    transition: border-color 0.2s ease-in-out;
+}
+
+.stTextInput>div>input:focus,
+.stNumberInput>div>input:focus,
+.stSlider>div>div>input:focus,
+.stSelectbox>div>div>select:focus {
+    border-color: #66b2ff;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(153, 221, 255, 0.4);
+}
+
+.stDataFrame table th {
+    background-color: #3c3c3c !important;
+    color: white !important;
+    font-weight: bold !important;
+}
+
+.footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: #1e1e1e;
+    color: #ccc;
+    text-align: center;
+    padding: 1em;
+    font-size: 0.9em;
+    font-style: italic;
+    border-top: 1px solid #99ddff;
+}
