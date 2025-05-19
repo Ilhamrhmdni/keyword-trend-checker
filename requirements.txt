@@ -1,4 +1,7 @@
 streamlit
 requests
-httpx
-python-dotenv
+pandas
+plotly
+openpyxl
+python-telegram-bot==13.15
+matplotlib
