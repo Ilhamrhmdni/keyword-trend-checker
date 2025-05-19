@@ -100,7 +100,7 @@ if option == "Filter Produk Extension Xyra":
             (df['Terjual(Bulanan)'] >= terjual_min) &  
             (df['Komisi(%)'] >= komisi_persen_min) &   
             (df['Komisi(Rp)'] >= komisi_rp_min) &      
-            (df['Jumlah Live'] >= jumlah_live_min) &
+            (df['Jumlah Live'] >= jumlah_live_min)
         ]
     if uploaded_files:
         custom_filename = st.text_input("Masukkan nama file CSV untuk produk lolos filter", value="data_produk")
