@@ -78,22 +78,8 @@ if option == "Filter Produk Extension Xyra":
                                                 help="Produk dengan komisi kurang dari persentase ini tidak akan diproses")
     komisi_rp_min = st.sidebar.number_input("Min komisi (Rp)", min_value=0.0,value=500.0,
                                             help="Produk dengan komisi kurang dari nilai ini tidak akan diproses")
-    # Filter Jumlah Live Min & Max dalam kolom
-    col1, col2 = st.sidebar.columns(2)
-    with col1:
-        jumlah_live_min = st.number_input(
-            "Min jumlah live",
-            min_value=0,
-            value=0,
-            help="Minimum jumlah live listing untuk produk"
-        )
-    with col2:
-        jumlah_live_max = st.number_input(
-            "Max jumlah live",
-            min_value=0,
-            value=0,
-            help="Maksimum jumlah live listing untuk produk"
-        )
+    jumlah_live_min = st.sidebar.number_input("Min jumlah live",min_value=0,value=0,
+                                      help="Minimum jumlah live listing untuk produk")
     # Checkbox untuk pengacakan urutan produk
     shuffle_products = st.sidebar.checkbox("Acak produk", value=False, 
                                            help="Centang maka produk anda akan morat-morat.")
@@ -115,7 +101,6 @@ if option == "Filter Produk Extension Xyra":
             (df['Komisi(%)'] >= komisi_persen_min) &   
             (df['Komisi(Rp)'] >= komisi_rp_min) &      
             (df['Jumlah Live'] >= jumlah_live_min) &
-            (df['Jumlah Live'] <= jumlah_live_max)
         ]
     if uploaded_files:
         custom_filename = st.text_input("Masukkan nama file CSV untuk produk lolos filter", value="data_produk")
