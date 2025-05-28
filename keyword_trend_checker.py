@@ -65,10 +65,16 @@ if submitted:
 
                 st.subheader(f"🔎 Related Queries untuk: {keyword_list[0]}")
                 related = related_queries.get(keyword_list[0], None)
-                if related and "top" in related and related["top"] is not None:
-                    st.table(related["top"].head(10))
+                
+                if related and isinstance(related, dict):
+                    top_df = related.get("top")
+                    if top_df is not None and not top_df.empty:
+                        st.table(top_df.head(10))
+                    else:
+                        st.write("Tidak ada related queries ditemukan.")
                 else:
                     st.write("Tidak ada related queries ditemukan.")
+
         except Exception as e:
             if "429" in str(e):
                 st.error("Terjadi limitasi request (429 Too Many Requests). Coba lagi nanti atau kurangi frekuensi pencarian.")
