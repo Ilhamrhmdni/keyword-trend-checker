@@ -17,11 +17,13 @@ def get_trend_data(keywords, geo, timeframe):
     )
     pytrends.build_payload(keywords, geo=geo, timeframe=timeframe)
     data = pytrends.interest_over_time()
+    if data.empty:
+        return None, None
     related = pytrends.related_queries()
     return data, related
 
 with st.form("trend_form"):
-    keywords_input = st.text_input("Masukkan kata kunci (pisahkan dengan koma, maksimal 5)", "kaos polos, kaos lengan panjang")
+    keywords_input = st.text_input("Masukkan kata kunci (pisahkan dengan koma, maksimal 5)", "kaos polos")
     geo = st.selectbox("Wilayah", options=[
         ("Indonesia", "ID"),
         ("Global", ""),
@@ -50,8 +52,8 @@ if submitted:
     else:
         try:
             data, related_queries = get_trend_data(keyword_list, geo[1], time_range[1])
-            if data.empty:
-                st.error("Tidak ada data tren yang ditemukan untuk kata kunci tersebut.")
+            if data is None:
+                st.error("Data tren tidak tersedia untuk kata kunci tersebut.")
             else:
                 data = data.drop(columns=["isPartial"], errors="ignore")
 
@@ -64,20 +66,26 @@ if submitted:
                 st.pyplot(fig)
 
                 st.subheader(f"🔎 Related Queries untuk: {keyword_list[0]}")
-                related = related_queries.get(keyword_list[0], None)
-                
-                if related and isinstance(related, dict):
-                    top_df = related.get("top")
-                    if top_df is not None and not top_df.empty:
-                        st.table(top_df.head(10))
+                try:
+                    related = related_queries.get(keyword_list[0], None)
+                    st.write("Debug related:", related)
+                    st.write("Tipe related:", type(related))
+
+                    if related and isinstance(related, dict):
+                        top_df = related.get("top", None)
+                        st.write("Debug top_df:", top_df)
+                        if top_df is not None and not top_df.empty:
+                            st.table(top_df.head(10))
+                        else:
+                            st.write("Tidak ada related queries ditemukan.")
                     else:
                         st.write("Tidak ada related queries ditemukan.")
-                else:
-                    st.write("Tidak ada related queries ditemukan.")
+                except Exception as e:
+                    st.error(f"Error saat mengambil related queries: {e}")
 
         except Exception as e:
             if "429" in str(e):
-                st.error("Terjadi limitasi request (429 Too Many Requests). Coba lagi nanti atau kurangi frekuensi pencarian.")
+                st.error("Limitasi request (429 Too Many Requests). Coba lagi nanti atau kurangi frekuensi pencarian.")
             else:
                 st.error(f"Gagal mengambil data Google Trends: {e}")
 
