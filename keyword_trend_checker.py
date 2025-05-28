@@ -11,6 +11,8 @@ def get_trend_data(keywords, geo, timeframe):
     pytrends = TrendReq(
         hl='id-ID',
         tz=360,
+        retries=5,
+        backoff_factor=0.5,
         requests_args={'headers': {'User-Agent': 'Mozilla/5.0'}}
     )
     pytrends.build_payload(keywords, geo=geo, timeframe=timeframe)
@@ -68,7 +70,10 @@ if submitted:
                 else:
                     st.write("Tidak ada related queries ditemukan.")
         except Exception as e:
-            st.error(f"Gagal mengambil data Google Trends: {e}")
+            if "429" in str(e):
+                st.error("Terjadi limitasi request (429 Too Many Requests). Coba lagi nanti atau kurangi frekuensi pencarian.")
+            else:
+                st.error(f"Gagal mengambil data Google Trends: {e}")
 
 st.markdown("---")
 st.markdown("📊 Data dari Google Trends | Dibuat dengan ❤️ oleh Kamu")
