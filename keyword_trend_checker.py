@@ -47,7 +47,7 @@ if submitted:
         st.warning("Maksimal 5 kata kunci per pencarian.")
     else:
         try:
-            data, related_queries = get_trend_data(keyword_list, geo[1], time_range)
+            data, related_queries = get_trend_data(keyword_list, geo[1], time_range[1])  # <-- fix di sini
             if data.empty:
                 st.error("Tidak ada data tren yang ditemukan untuk kata kunci tersebut.")
             else:
