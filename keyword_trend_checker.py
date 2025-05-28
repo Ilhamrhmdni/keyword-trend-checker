@@ -47,7 +47,7 @@ if submitted:
         st.warning("Maksimal 5 kata kunci per pencarian.")
     else:
         try:
-            data, related_queries = get_trend_data(keyword_list, geo[1], time_range[1])  # <-- fix di sini
+            data, related_queries = get_trend_data(keyword_list, geo[1], time_range[1])
             if data.empty:
                 st.error("Tidak ada data tren yang ditemukan untuk kata kunci tersebut.")
             else:
@@ -62,9 +62,9 @@ if submitted:
                 st.pyplot(fig)
 
                 st.subheader(f"🔎 Related Queries untuk: {keyword_list[0]}")
-                related = related_queries.get(keyword_list[0], {}).get("top")
-                if related is not None and not related.empty:
-                    st.table(related.head(10))
+                related = related_queries.get(keyword_list[0], None)
+                if related and "top" in related and related["top"] is not None:
+                    st.table(related["top"].head(10))
                 else:
                     st.write("Tidak ada related queries ditemukan.")
         except Exception as e:
