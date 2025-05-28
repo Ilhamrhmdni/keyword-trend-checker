@@ -27,7 +27,7 @@ with st.form("trend_form"):
         ("7 hari terakhir", "now 7-d"),
         ("30 hari terakhir", "now 30-d"),
         ("12 bulan terakhir", "today 12-m"),
-        ("5 tahun terakhir", "today+5-y")
+        ("5 tahun terakhir", "today 5-y")
     ])
     submitted = st.form_submit_button("🔍 Cek Tren")
 
@@ -38,7 +38,6 @@ if submitted:
     elif len(keyword_list) > 5:
         st.warning("Maksimal 5 kata kunci per pencarian.")
     else:
-        st.success(f"Menampilkan tren untuk: {', '.join(keyword_list)}")
         try:
             data, related_queries = get_trend_data(keyword_list, geo[1], time_range)
             if data.empty:
