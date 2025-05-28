@@ -2,29 +2,17 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from pytrends.request import TrendReq
-import time
 
 st.set_page_config(page_title="Keyword Trend Checker", layout="wide")
 st.title("📈 Keyword Trend Checker")
 
 @st.cache_data(ttl=3600)
-def get_trend_data(keywords, geo, timeframe, max_retries=3, delay=2):
-    """
-    Ambil data Google Trends dengan retry otomatis dan penanganan error.
-    """
-    pytrends = TrendReq(hl='id-ID', tz=360, retries=max_retries, backoff_factor=delay)
-    tries = 0
-    while tries < max_retries:
-        try:
-            pytrends.build_payload(keywords, geo=geo, timeframe=timeframe)
-            data = pytrends.interest_over_time()
-            related = pytrends.related_queries()
-            return data, related
-        except Exception as e:
-            tries += 1
-            if tries >= max_retries:
-                raise e
-            time.sleep(delay)  # tunggu sebelum coba ulang
+def get_trend_data(keywords, geo, timeframe):
+    pytrends = TrendReq(hl='id-ID', tz=360)
+    pytrends.build_payload(keywords, geo=geo, timeframe=timeframe)
+    data = pytrends.interest_over_time()
+    related = pytrends.related_queries()
+    return data, related
 
 with st.form("trend_form"):
     keywords_input = st.text_input("Masukkan kata kunci (pisahkan dengan koma, maksimal 5)", "kaos polos, kaos lengan panjang")
