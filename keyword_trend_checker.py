@@ -83,4 +83,4 @@ if submitted:
 # Footer
 # -----------------------------
 st.markdown("---")
-st.markdown("📊 Data dari Google Trends | Dibuat dengan ❤️ oleh [Nama Kamu]")
+st.markdown("Dibuat dengan ❤️ oleh Ilham Rahmad Dani")
