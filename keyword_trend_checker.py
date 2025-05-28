@@ -8,7 +8,11 @@ st.title("📈 Keyword Trend Checker")
 
 @st.cache_data(ttl=3600)
 def get_trend_data(keywords, geo, timeframe):
-    pytrends = TrendReq(hl='id-ID', tz=360)
+    pytrends = TrendReq(
+        hl='id-ID',
+        tz=360,
+        requests_args={'headers': {'User-Agent': 'Mozilla/5.0'}}
+    )
     pytrends.build_payload(keywords, geo=geo, timeframe=timeframe)
     data = pytrends.interest_over_time()
     related = pytrends.related_queries()
@@ -33,6 +37,10 @@ with st.form("trend_form"):
 
 if submitted:
     keyword_list = [k.strip() for k in keywords_input.split(",") if k.strip()]
+    st.write("Debug: keywords =", keyword_list)
+    st.write("Debug: geo =", geo[1])
+    st.write("Debug: timeframe =", time_range)
+
     if len(keyword_list) == 0:
         st.warning("Masukkan minimal satu kata kunci.")
     elif len(keyword_list) > 5:
