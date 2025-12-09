@@ -176,7 +176,7 @@ matkul_label = subject_labels[st.session_state["selected_subject"]]
 
 menu = st.sidebar.radio(
     "Pilih halaman:",
-    ("Kerjakan Soal", "Tambah / Hapus / Edit Soal"),
+    ("Kerjakan Soal", "Setelan Tambahan"),
     on_change=reset_submit_flag,
 )
 
