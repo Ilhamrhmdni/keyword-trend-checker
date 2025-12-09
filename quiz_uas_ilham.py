@@ -7,20 +7,19 @@ import streamlit as st
 st.set_page_config(page_title="Ujian E-Learning Ilham", layout="centered")
 
 # ======================================
-# 🔗 KONFIGURASI GITHUB (GANTI PUNYA MU)
+# 🔗 KONFIGURASI GITHUB (SUDAH DISET UNTUKMU)
 # ======================================
 
-# 1) RAW URL soal.json
+# 1) RAW URL soal.json (untuk READ)
 URL_SOAL_GITHUB = (
     "https://raw.githubusercontent.com/Ilhamrhmdni/keyword-trend-checker/main/soal.json"
-    # contoh: "https://raw.githubusercontent.com/ilhamdank/quiz-uas/main/soal.json"
 )
 
 # 2) Nama repo "username/repo"
-REPO_NAME = "Ilhamrhmdni/keyword-trend-checker"  # contoh: "ilhamdank/quiz-uas"
+REPO_NAME = "Ilhamrhmdni/keyword-trend-checker"
 
 # 3) Lokasi file soal di repo
-FILE_PATH = "soal.json"  # kalau kamu taruh di folder, misal: "data/soal.json"
+FILE_PATH = "soal.json"  # karena soal.json ada di root
 
 # 4) Branch yang dipakai
 BRANCH = "main"
@@ -47,12 +46,15 @@ def load_questions_from_github():
 # ======================================
 # 💾 FUNGSI SAVE SOAL KE GITHUB (WRITE)
 # ======================================
-def save_questions_to_github(questions):
-    """Meng-overwrite file soal.json di GitHub dengan isi dari 'questions'."""
+def save_questions_to_github(questions) -> bool:
+    """
+    Meng-overwrite file soal.json di GitHub dengan isi dari 'questions'.
+    Return True kalau sukses, False kalau gagal.
+    """
     token = st.secrets.get("GITHUB_TOKEN")
     if not token:
         st.error("GITHUB_TOKEN belum diset di secrets. Set dulu di Streamlit secrets.")
-        return
+        return False
 
     api_url = f"https://api.github.com/repos/{REPO_NAME}/contents/{FILE_PATH}"
 
@@ -66,6 +68,12 @@ def save_questions_to_github(questions):
     get_r = requests.get(api_url, headers=headers)
     if get_r.status_code == 200:
         sha = get_r.json().get("sha")
+    elif get_r.status_code == 404:
+        # file belum ada → boleh buat baru, sha tetap None
+        sha = None
+    else:
+        st.error(f"Gagal mengambil info soal.json dari GitHub: {get_r.status_code} {get_r.text}")
+        return False
 
     # isi baru file
     new_content = json.dumps(questions, ensure_ascii=False, indent=2)
@@ -83,8 +91,10 @@ def save_questions_to_github(questions):
 
     if put_r.status_code in (200, 201):
         st.success("✔ soal.json berhasil disimpan ke GitHub.")
+        return True
     else:
         st.error(f"Gagal menyimpan soal ke GitHub: {put_r.status_code} {put_r.text}")
+        return False
 
 
 # ============================
@@ -290,9 +300,8 @@ def page_tambah_hapus_soal():
                     }
 
                 st.session_state["questions"].append(new_question)
-                # AUTO-SAVE ke GitHub
-                save_questions_to_github(st.session_state["questions"])
-                st.success(f"Soal baru berhasil ditambahkan & disimpan ke GitHub (ID {new_question['id']}).")
+                if save_questions_to_github(st.session_state["questions"]):
+                    st.info(f"Soal baru ditambahkan (ID {new_question['id']}).")
 
     st.markdown("---")
 
@@ -318,10 +327,9 @@ def page_tambah_hapus_soal():
                 st.session_state["questions"] = [
                     qq for qq in st.session_state["questions"] if qq.get("id") != q_id
                 ]
-                # AUTO-SAVE setelah hapus
-                save_questions_to_github(st.session_state["questions"])
-                st.success(f"Soal dengan ID {q_id} telah dihapus & disimpan ke GitHub.")
-                st.rerun()
+                if save_questions_to_github(st.session_state["questions"]):
+                    st.success(f"Soal dengan ID {q_id} telah dihapus.")
+                    st.rerun()
 
 
 # ============================
