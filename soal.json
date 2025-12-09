@@ -2,34 +2,27 @@
   {
     "id": 1,
     "type": "mc",
-    "question": "Ekspansi fiskal pemerintah biasanya dilakukan untuk...",
+    "question": "Yang bukan termasuk dalam rumusan Trisila yang diajukan oleh Ir. Soekarno pada\npidatonya tanggal 1 Juni 1945, adalah ....",
     "options": [
-      "Menurunkan pendapatan nasional",
-      "Meningkatkan permintaan agregat",
-      "Mengurangi jumlah uang beredar",
-      "Menurunkan tingkat inflasi"
+      "sosio-demokrasi",
+      "ketuhanan",
+      "keadilan sosial",
+      "sosio-nasionalisme"
     ],
-    "correct_answer": "Meningkatkan permintaan agregat",
-    "explanation": "Ekspansi fiskal (menaikkan belanja negara / menurunkan pajak) mendorong permintaan agregat."
+    "correct_answer": "keadilan sosial",
+    "explanation": ""
   },
   {
     "id": 2,
     "type": "mc",
-    "question": "Dalam neraca perusahaan manufaktur, urutan persediaan yang benar adalah...",
+    "question": "Yang bukan termasuk dalam rumusan Trisila yang diajukan oleh Ir. Soekarno pada\npidatonya tanggal 1 Juni 1945, adalah ....",
     "options": [
-      "Barang jadi – Barang dalam proses – Bahan baku",
-      "Bahan baku – Barang dalam proses – Barang jadi",
-      "Barang dalam proses – Bahan baku – Barang jadi",
-      "Barang jadi – Bahan baku – Barang dalam proses"
+      "sosio-demokrasi",
+      "ketuhanan",
+      "keadilan sosial",
+      "sosio-nasionalisme"
     ],
-    "correct_answer": "Bahan baku – Barang dalam proses – Barang jadi",
-    "explanation": "Urutan alur produksi: Bahan baku → Barang dalam proses → Barang jadi."
-  },
-  {
-    "id": 3,
-    "type": "short",
-    "question": "Tuliskan urutan penyajian persediaan di neraca perusahaan manufaktur!",
-    "correct_answer": "bahan baku - barang dalam proses - barang jadi",
-    "explanation": "Jawaban ideal: Bahan baku – Barang dalam proses – Barang jadi."
+    "correct_answer": "keadilan sosial",
+    "explanation": ""
   }
 ]
