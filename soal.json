@@ -1,0 +1,35 @@
+[
+  {
+    "id": 1,
+    "type": "mc",
+    "question": "Ekspansi fiskal pemerintah biasanya dilakukan untuk...",
+    "options": [
+      "Menurunkan pendapatan nasional",
+      "Meningkatkan permintaan agregat",
+      "Mengurangi jumlah uang beredar",
+      "Menurunkan tingkat inflasi"
+    ],
+    "correct_answer": "Meningkatkan permintaan agregat",
+    "explanation": "Ekspansi fiskal (menaikkan belanja negara / menurunkan pajak) mendorong permintaan agregat."
+  },
+  {
+    "id": 2,
+    "type": "mc",
+    "question": "Dalam neraca perusahaan manufaktur, urutan persediaan yang benar adalah...",
+    "options": [
+      "Barang jadi – Barang dalam proses – Bahan baku",
+      "Bahan baku – Barang dalam proses – Barang jadi",
+      "Barang dalam proses – Bahan baku – Barang jadi",
+      "Barang jadi – Bahan baku – Barang dalam proses"
+    ],
+    "correct_answer": "Bahan baku – Barang dalam proses – Barang jadi",
+    "explanation": "Urutan alur produksi: Bahan baku → Barang dalam proses → Barang jadi."
+  },
+  {
+    "id": 3,
+    "type": "short",
+    "question": "Tuliskan urutan penyajian persediaan di neraca perusahaan manufaktur!",
+    "correct_answer": "bahan baku - barang dalam proses - barang jadi",
+    "explanation": "Jawaban ideal: Bahan baku – Barang dalam proses – Barang jadi."
+  }
+]
