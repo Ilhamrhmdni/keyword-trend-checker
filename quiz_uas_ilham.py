@@ -8,7 +8,7 @@ st.set_page_config(page_title="Ujian E-Learning Ilham", layout="centered")
 # 🔗 URL JSON GITHUB (GANTI DENGAN PUNYAMU)
 # ======================================
 URL_SOAL_GITHUB = (
-    "https://raw.githubusercontent.com/USERNAME/NAMA_REPO/main/soal.json"
+    "https://raw.githubusercontent.com/Ilhamrhmdni/keyword-trend-checker/refs/heads/main/soal.json"
     # contoh: "https://raw.githubusercontent.com/ilhamdank/quiz-uas/main/soal.json"
 )
 
