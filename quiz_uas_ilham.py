@@ -4,7 +4,7 @@ import urllib.request
 import requests
 import streamlit as st
 
-st.set_page_config(page_title="Ujian E-Learning Ilham", layout="centered")
+st.set_page_config(page_title="Ujian E-Learning Yulia", layout="centered")
 
 # ======================================
 # 🔗 KONFIGURASI GITHUB (REPO KAMU)
@@ -180,12 +180,12 @@ menu = st.sidebar.radio(
     on_change=reset_submit_flag,
 )
 
-if st.sidebar.button("🔄 Muat ulang soal dari GitHub (READ)"):
+if st.sidebar.button("🔄 Muat ulang soal"):
     st.session_state["questions"] = load_questions_from_github(
         st.session_state["selected_subject"]
     )
     st.session_state["submitted"] = False
-    st.sidebar.success(f"Soal {matkul_label} berhasil dimuat ulang dari GitHub.")
+    st.sidebar.success(f"Soal {matkul_label} berhasil dimuat ulang.")
     st.rerun()
 
 st.sidebar.markdown("---")
@@ -213,7 +213,7 @@ def page_kerjakan_soal():
     if not questions:
         st.warning(
             "Belum ada soal yang dimuat untuk matkul ini. "
-            "Coba klik 'Muat ulang soal dari GitHub' di sidebar."
+            "Coba klik 'Muat ulang soal.' "
         )
         return
 
