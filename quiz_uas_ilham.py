@@ -17,7 +17,7 @@ URL_SOAL_GITHUB = (
 )
 
 # 2) Nama repo "username/repo"
-REPO_NAME = "Ilhamrhmdni /keyword-trend-checker"  # contoh: "ilhamdank/quiz-uas"
+REPO_NAME = "Ilhamrhmdni/keyword-trend-checker"  # contoh: "ilhamdank/quiz-uas"
 
 # 3) Lokasi file soal di repo
 FILE_PATH = "soal.json"  # kalau kamu taruh di folder, misal: "data/soal.json"
