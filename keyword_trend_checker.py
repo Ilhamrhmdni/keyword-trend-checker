@@ -1,6 +1,6 @@
 import streamlit as st
 
-st.set_page_config(page_title="Ujian E-Learning Ilham", layout="centered")
+st.set_page_config(page_title="Ujian E-Learning YULIA", layout="centered")
 
 # ============================
 # 🔧 BAGIAN SOAL – BISA KAMU EDIT
