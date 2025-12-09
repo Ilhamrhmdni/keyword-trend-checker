@@ -14,7 +14,7 @@ st.set_page_config(page_title="Ujian E-Learning Ilham", layout="centered")
 REPO_NAME = "Ilhamrhmdni/keyword-trend-checker"  # ganti kalau repo beda
 BRANCH = "main"
 
-SUBJECTS_FILE = "subjects.json"  # daftar matkul disimpan di sini (list objek)
+SUBJECTS_FILE = "subjects_ilham.json"  # daftar matkul disimpan di sini (list objek)
 
 
 def get_raw_url(filename: str) -> str:
