@@ -17,7 +17,7 @@ BRANCH = "main"
 # key = kode internal, label = tampilan di UI, filename = nama file di repo
 MATKULS = {
     "pkn": {
-        "label": "PKN / Pancasila",
+        "label": "Pancasila",
         "filename": "pkn.json",
     },
     "bindo": {
