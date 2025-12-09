@@ -7,7 +7,7 @@ import streamlit as st
 st.set_page_config(page_title="Ujian E-Learning Ilham", layout="centered")
 
 # ======================================
-# 🔗 KONFIGURASI GITHUB (SUDAH DISET UNTUKMU)
+# 🔗 KONFIGURASI GITHUB – SUDAH DISET UNTUKMU
 # ======================================
 
 # 1) RAW URL soal.json (untuk READ)
@@ -48,7 +48,7 @@ def load_questions_from_github():
 # ======================================
 def save_questions_to_github(questions) -> bool:
     """
-    Meng-overwrite file soal.json di GitHub dengan isi dari 'questions'.
+    Meng-overwrite soal.json di GitHub dengan isi dari 'questions'.
     Return True kalau sukses, False kalau gagal.
     """
     token = st.secrets.get("GITHUB_TOKEN")
@@ -63,19 +63,19 @@ def save_questions_to_github(questions) -> bool:
         "Accept": "application/vnd.github+json",
     }
 
-    # ambil sha file lama (kalau ada)
+    # Ambil sha file lama (kalau ada)
     sha = None
     get_r = requests.get(api_url, headers=headers)
     if get_r.status_code == 200:
         sha = get_r.json().get("sha")
     elif get_r.status_code == 404:
-        # file belum ada → boleh buat baru, sha tetap None
-        sha = None
+        sha = None  # file belum ada, nanti dibuat baru
     else:
-        st.error(f"Gagal mengambil info soal.json dari GitHub: {get_r.status_code} {get_r.text}")
+        st.error(
+            f"Gagal mengambil info soal.json dari GitHub: {get_r.status_code} {get_r.text}"
+        )
         return False
 
-    # isi baru file
     new_content = json.dumps(questions, ensure_ascii=False, indent=2)
     encoded_content = base64.b64encode(new_content.encode("utf-8")).decode("utf-8")
 
@@ -85,7 +85,7 @@ def save_questions_to_github(questions) -> bool:
         "branch": BRANCH,
     }
     if sha:
-        payload["sha"] = sha  # diperlukan kalau overwrite file yang sudah ada
+        payload["sha"] = sha
 
     put_r = requests.put(api_url, headers=headers, json=payload)
 
@@ -106,6 +106,9 @@ if "questions" not in st.session_state:
 if "submitted" not in st.session_state:
     st.session_state["submitted"] = False
 
+if "editing_id" not in st.session_state:
+    st.session_state["editing_id"] = None  # ID soal yang sedang diedit
+
 
 def reset_submit_flag():
     st.session_state["submitted"] = False
@@ -117,7 +120,7 @@ def reset_submit_flag():
 st.sidebar.title("Menu")
 menu = st.sidebar.radio(
     "Pilih halaman:",
-    ("Kerjakan Soal", "Tambah / Hapus Soal"),
+    ("Kerjakan Soal", "Tambah / Hapus / Edit Soal"),
     on_change=reset_submit_flag,
 )
 
@@ -129,7 +132,7 @@ if st.sidebar.button("🔄 Muat ulang soal dari GitHub (READ)"):
 
 st.sidebar.markdown("---")
 st.sidebar.write(f"Jumlah soal di session: **{len(st.session_state['questions'])}**")
-st.sidebar.caption("Perubahan disimpan ke GitHub saat kamu tambah/hapus soal.")
+st.sidebar.caption("Perubahan disimpan ke GitHub saat kamu tambah/hapus/edit soal.")
 
 
 # ============================
@@ -145,7 +148,9 @@ def page_kerjakan_soal():
 
     questions = st.session_state["questions"]
     if not questions:
-        st.warning("Belum ada soal yang dimuat. Coba klik 'Muat ulang soal dari GitHub' di sidebar.")
+        st.warning(
+            "Belum ada soal yang dimuat. Coba klik 'Muat ulang soal dari GitHub' di sidebar."
+        )
         return
 
     correct_count = 0
@@ -206,17 +211,150 @@ def page_kerjakan_soal():
 
 
 # ============================
-# ➕ HALAMAN 2: TAMBAH & HAPUS SOAL
+# ✏ HALAMAN 2: TAMBAH / HAPUS / EDIT SOAL
 # ============================
-def page_tambah_hapus_soal():
-    st.title("Tambah / Hapus Soal ✍️")
+def page_tambah_hapus_edit_soal():
+    st.title("Tambah / Hapus / Edit Soal ✍️")
     st.write(
         "Perubahan di sini akan:\n"
         "1. Mengubah soal di session.\n"
         "2. **Langsung menyimpan ulang soal.json ke GitHub (auto-save).**"
     )
 
-    # ---------- FORM TAMBAH SOAL ----------
+    questions = st.session_state["questions"]
+
+    # =====================
+    # 🔁 FORM EDIT SOAL (JIKA ADA YANG SEDANG DIEDIT)
+    # =====================
+    editing_id = st.session_state.get("editing_id")
+    if editing_id is not None:
+        q_edit = next((q for q in questions if q.get("id") == editing_id), None)
+        st.markdown("---")
+        st.subheader(f"Edit Soal (ID {editing_id})")
+
+        if q_edit is None:
+            st.warning("Soal yang mau diedit tidak ditemukan.")
+        else:
+            q_type = q_edit.get("type", "mc")
+            jenis_label = "Pilihan Ganda" if q_type == "mc" else "Jawaban Singkat"
+            st.caption(f"Jenis soal: **{jenis_label}** (tidak bisa diubah)")
+
+            with st.form("form_edit_soal"):
+                question_text = st.text_area(
+                    "Teks soal",
+                    value=q_edit.get("question", ""),
+                    height=80,
+                )
+                explanation = st.text_area(
+                    "Penjelasan (opsional)",
+                    value=q_edit.get("explanation", ""),
+                    height=60,
+                )
+
+                options = []
+                correct_answer = ""
+
+                if q_type == "mc":
+                    # ambil opsi lama (maks 4)
+                    old_opts = q_edit.get("options", [])
+                    opt_a = st.text_input(
+                        "Opsi A", value=old_opts[0] if len(old_opts) > 0 else ""
+                    )
+                    opt_b = st.text_input(
+                        "Opsi B", value=old_opts[1] if len(old_opts) > 1 else ""
+                    )
+                    opt_c = st.text_input(
+                        "Opsi C", value=old_opts[2] if len(old_opts) > 2 else ""
+                    )
+                    opt_d = st.text_input(
+                        "Opsi D", value=old_opts[3] if len(old_opts) > 3 else ""
+                    )
+
+                    options = [
+                        o for o in [opt_a, opt_b, opt_c, opt_d] if o.strip()
+                    ]
+
+                    kunci_huruf = st.selectbox(
+                        "Jawaban benar (pilih huruf)",
+                        ("A", "B", "C", "D"),
+                    )
+
+                    index_mapping = {"A": 0, "B": 1, "C": 2, "D": 3}
+                    idx = index_mapping[kunci_huruf]
+
+                    if idx < len(options):
+                        correct_answer = options[idx].strip()
+                    else:
+                        correct_answer = ""
+
+                else:  # short
+                    correct_answer = st.text_input(
+                        "Jawaban yang benar (ideal)",
+                        value=q_edit.get("correct_answer", ""),
+                    )
+
+                col_save, col_cancel = st.columns(2)
+                with col_save:
+                    submit_edit = st.form_submit_button("💾 Simpan Perubahan")
+                with col_cancel:
+                    cancel_edit = st.form_submit_button("Batal Edit")
+
+                if cancel_edit:
+                    st.session_state["editing_id"] = None
+                    st.info("Edit dibatalkan.")
+                    st.rerun()
+
+                if submit_edit:
+                    if not question_text.strip():
+                        st.error("Teks soal tidak boleh kosong.")
+                    else:
+                        if q_type == "mc":
+                            if len(options) < 2:
+                                st.error("Minimal isi dua opsi jawaban.")
+                                return
+                            if not correct_answer:
+                                st.error(
+                                    "Jawaban benar tidak valid (periksa kembali opsi dan pilihan huruf)."
+                                )
+                                return
+
+                            updated = {
+                                "id": editing_id,
+                                "type": "mc",
+                                "question": question_text.strip(),
+                                "options": options,
+                                "correct_answer": correct_answer.strip(),
+                                "explanation": explanation.strip(),
+                            }
+                        else:
+                            if not correct_answer.strip():
+                                st.error("Jawaban benar tidak boleh kosong.")
+                                return
+                            updated = {
+                                "id": editing_id,
+                                "type": "short",
+                                "question": question_text.strip(),
+                                "correct_answer": correct_answer.strip().lower(),
+                                "explanation": explanation.strip(),
+                            }
+
+                        # ganti di list
+                        for i, qq in enumerate(questions):
+                            if qq.get("id") == editing_id:
+                                questions[i] = updated
+                                break
+
+                        if save_questions_to_github(questions):
+                            st.session_state["questions"] = questions
+                            st.session_state["editing_id"] = None
+                            st.success(f"Soal ID {editing_id} berhasil diupdate.")
+                            st.rerun()
+
+    st.markdown("---")
+
+    # =====================
+    # ➕ FORM TAMBAH SOAL BARU
+    # =====================
     st.subheader("Tambah Soal Baru")
 
     with st.form("form_tambah_soal"):
@@ -270,13 +408,15 @@ def page_tambah_hapus_soal():
                         st.error("Minimal isi dua opsi jawaban.")
                         return
                     if not correct_answer:
-                        st.error("Jawaban benar tidak valid (periksa kembali opsi dan pilihan huruf).")
+                        st.error(
+                            "Jawaban benar tidak valid (periksa kembali opsi dan pilihan huruf)."
+                        )
                         return
 
                     new_question = {
-                        "id": max([q.get("id", 0) for q in st.session_state["questions"]]) + 1
-                        if st.session_state["questions"]
-                        else 1,
+                        "id": max(
+                            [q.get("id", 0) for q in questions]
+                        ) + 1 if questions else 1,
                         "type": "mc",
                         "question": question_text.strip(),
                         "options": options,
@@ -290,31 +430,36 @@ def page_tambah_hapus_soal():
                         return
 
                     new_question = {
-                        "id": max([q.get("id", 0) for q in st.session_state["questions"]]) + 1
-                        if st.session_state["questions"]
-                        else 1,
+                        "id": max(
+                            [q.get("id", 0) for q in questions]
+                        ) + 1 if questions else 1,
                         "type": "short",
                         "question": question_text.strip(),
                         "correct_answer": correct_answer.strip().lower(),
                         "explanation": explanation.strip(),
                     }
 
-                st.session_state["questions"].append(new_question)
-                if save_questions_to_github(st.session_state["questions"]):
-                    st.info(f"Soal baru ditambahkan (ID {new_question['id']}).")
+                questions.append(new_question)
+                if save_questions_to_github(questions):
+                    st.session_state["questions"] = questions
+                    st.success(
+                        f"Soal baru berhasil ditambahkan (ID {new_question['id']})."
+                    )
 
     st.markdown("---")
 
-    # ---------- DAFTAR SOAL + HAPUS ----------
+    # =====================
+    # 📋 DAFTAR SOAL + TOMBOL EDIT/HAPUS
+    # =====================
     st.subheader("Daftar Soal Saat Ini")
 
-    if not st.session_state["questions"]:
+    if not questions:
         st.info("Belum ada soal.")
         return
 
-    for q in st.session_state["questions"]:
+    for q in questions:
         q_id = q.get("id", "?")
-        col1, col2, col3 = st.columns([6, 2, 2])
+        col1, col2, col3, col4 = st.columns([6, 2, 1.5, 1.5])
         with col1:
             text = q.get("question", "")
             potong = (text[:90] + "…") if len(text) > 90 else text
@@ -323,9 +468,13 @@ def page_tambah_hapus_soal():
             jenis = "Pilihan Ganda" if q.get("type") == "mc" else "Jawaban Singkat"
             st.markdown(f"_{jenis}_")
         with col3:
+            if st.button("Edit", key=f"edit-{q_id}"):
+                st.session_state["editing_id"] = q_id
+                st.rerun()
+        with col4:
             if st.button("Hapus", key=f"hapus-{q_id}"):
                 st.session_state["questions"] = [
-                    qq for qq in st.session_state["questions"] if qq.get("id") != q_id
+                    qq for qq in questions if qq.get("id") != q_id
                 ]
                 if save_questions_to_github(st.session_state["questions"]):
                     st.success(f"Soal dengan ID {q_id} telah dihapus.")
@@ -337,5 +486,5 @@ def page_tambah_hapus_soal():
 # ============================
 if menu == "Kerjakan Soal":
     page_kerjakan_soal()
-elif menu == "Tambah / Hapus Soal":
-    page_tambah_hapus_soal()
+elif menu == "Tambah / Hapus / Edit Soal":
+    page_tambah_hapus_edit_soal()
