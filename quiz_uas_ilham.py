@@ -2,34 +2,19 @@ import json
 import base64
 import urllib.request
 import requests
+import re
 import streamlit as st
 
-st.set_page_config(page_title="Ujian E-Learning Yulia", layout="centered")
+st.set_page_config(page_title="Ujian E-Learning Ilham", layout="centered")
 
 # ======================================
 # 🔗 KONFIGURASI GITHUB (REPO KAMU)
 # ======================================
 
-REPO_NAME = "Ilhamrhmdni/keyword-trend-checker"
+REPO_NAME = "Ilhamrhmdni/keyword-trend-checker"  # ganti kalau repo beda
 BRANCH = "main"
 
-# 🎓 DAFTAR MATA KULIAH & NAMA FILE JSON
-# key = kode internal, label = tampilan di UI, filename = nama file di repo
-MATKULS = {
-    "pkn": {
-        "label": "Pancasila",
-        "filename": "pkn.json",
-    },
-    "bindo": {
-        "label": "Bahasa Indonesia",
-        "filename": "bahasaindonesia.json",
-    },
-    # contoh kalau mau nambah:
-    # "ekonomi": {
-    #     "label": "Ekonomi Makro",
-    #     "filename": "ekonomi.json",
-    # },
-}
+SUBJECTS_FILE = "subjects.json"  # daftar matkul disimpan di sini (list objek)
 
 
 def get_raw_url(filename: str) -> str:
@@ -38,10 +23,84 @@ def get_raw_url(filename: str) -> str:
 
 
 # ======================================
-# 📥 FUNGSI LOAD SOAL DARI GITHUB (READ)
+# 📥 LOAD & SAVE SUBJECTS (DAFTAR MATKUL)
+# ======================================
+def load_subjects_from_github():
+    """Ambil daftar matkul dari subjects.json. Format: list of {key,label,filename}."""
+    url = get_raw_url(SUBJECTS_FILE)
+    try:
+        with urllib.request.urlopen(url) as response:
+            data = response.read().decode("utf-8")
+        subjects = json.loads(data)
+        if isinstance(subjects, list):
+            return subjects
+        else:
+            st.warning("Format subjects.json tidak berupa list [].")
+            return []
+    except Exception as e:
+        # kalau 404 atau error lain → mulai dari kosong, biar bisa dibuat dari app
+        st.info(f"subjects.json belum ada atau gagal dibaca ({e}). Mulai dari daftar kosong.")
+        return []
+
+
+def save_subjects_to_github(subjects) -> bool:
+    """Simpan daftar matkul ke subjects.json di GitHub."""
+    token = st.secrets.get("GITHUB_TOKEN")
+    if not token:
+        st.error("GITHUB_TOKEN belum diset di secrets. Set dulu di Streamlit secrets.")
+        return False
+
+    api_url = f"https://api.github.com/repos/{REPO_NAME}/contents/{SUBJECTS_FILE}"
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+    }
+
+    # Ambil sha lama (kalau file sudah ada)
+    sha = None
+    get_r = requests.get(api_url, headers=headers)
+    if get_r.status_code == 200:
+        sha = get_r.json().get("sha")
+    elif get_r.status_code == 404:
+        sha = None  # belum ada → buat baru
+    else:
+        st.error(
+            f"Gagal mengambil info {SUBJECTS_FILE} dari GitHub: {get_r.status_code} {get_r.text}"
+        )
+        return False
+
+    new_content = json.dumps(subjects, ensure_ascii=False, indent=2)
+    encoded_content = base64.b64encode(new_content.encode("utf-8")).decode("utf-8")
+
+    payload = {
+        "message": "Update subjects.json via Streamlit app",
+        "content": encoded_content,
+        "branch": BRANCH,
+    }
+    if sha:
+        payload["sha"] = sha
+
+    put_r = requests.put(api_url, headers=headers, json=payload)
+    if put_r.status_code in (200, 201):
+        st.success("✔ subjects.json berhasil disimpan ke GitHub.")
+        return True
+    else:
+        st.error(f"Gagal menyimpan subjects.json: {put_r.status_code} {put_r.text}")
+        return False
+
+
+def get_subjects_dict():
+    """Ubah list subjects di session jadi dict key->subject."""
+    return {s["key"]: s for s in st.session_state.get("subjects", [])}
+
+
+# ======================================
+# 📥 / 💾 LOAD & SAVE SOAL PER MATKUL
 # ======================================
 def load_questions_from_github(matkul_key: str):
-    cfg = MATKULS.get(matkul_key)
+    subjects_dict = get_subjects_dict()
+    cfg = subjects_dict.get(matkul_key)
     if not cfg:
         st.error(f"Matkul '{matkul_key}' tidak dikenal.")
         return []
@@ -59,24 +118,21 @@ def load_questions_from_github(matkul_key: str):
             )
             return []
     except Exception as e:
-        st.error(f"Gagal memuat soal {cfg['filename']} dari GitHub (read): {e}")
+        st.info(f"File {cfg['filename']} belum ada atau gagal dibaca ({e}). Mulai dari kosong.")
         return []
 
 
-# ======================================
-# 💾 FUNGSI SAVE SOAL KE GITHUB (WRITE)
-# ======================================
 def save_questions_to_github(questions, matkul_key: str) -> bool:
     """
-    Meng-overwrite file JSON matkul di GitHub dengan isi dari 'questions'.
-    Return True kalau sukses, False kalau gagal.
+    Simpan soal untuk satu matkul ke file JSON-nya di GitHub.
     """
     token = st.secrets.get("GITHUB_TOKEN")
     if not token:
         st.error("GITHUB_TOKEN belum diset di secrets. Set dulu di Streamlit secrets.")
         return False
 
-    cfg = MATKULS.get(matkul_key)
+    subjects_dict = get_subjects_dict()
+    cfg = subjects_dict.get(matkul_key)
     if not cfg:
         st.error(f"Matkul '{matkul_key}' tidak dikenal.")
         return False
@@ -89,13 +145,13 @@ def save_questions_to_github(questions, matkul_key: str) -> bool:
         "Accept": "application/vnd.github+json",
     }
 
-    # Ambil sha file lama (kalau ada)
+    # Ambil sha lama (kalau ada)
     sha = None
     get_r = requests.get(api_url, headers=headers)
     if get_r.status_code == 200:
         sha = get_r.json().get("sha")
     elif get_r.status_code == 404:
-        sha = None  # file belum ada, nanti dibuat baru
+        sha = None  # file belum ada → buat baru
     else:
         st.error(
             f"Gagal mengambil info {filename} dari GitHub: {get_r.status_code} {get_r.text}"
@@ -114,7 +170,6 @@ def save_questions_to_github(questions, matkul_key: str) -> bool:
         payload["sha"] = sha
 
     put_r = requests.put(api_url, headers=headers, json=payload)
-
     if put_r.status_code in (200, 201):
         st.success(f"✔ {filename} berhasil disimpan ke GitHub.")
         return True
@@ -126,14 +181,20 @@ def save_questions_to_github(questions, matkul_key: str) -> bool:
 # ============================
 # 🔁 INISIALISASI STATE
 # ============================
+if "subjects" not in st.session_state:
+    st.session_state["subjects"] = load_subjects_from_github()
+
 if "selected_subject" not in st.session_state:
-    # default matkul = yang pertama di MATKULS
-    st.session_state["selected_subject"] = next(iter(MATKULS.keys()))
+    subs = st.session_state["subjects"]
+    st.session_state["selected_subject"] = subs[0]["key"] if subs else None
 
 if "questions" not in st.session_state:
-    st.session_state["questions"] = load_questions_from_github(
-        st.session_state["selected_subject"]
-    )
+    if st.session_state["selected_subject"]:
+        st.session_state["questions"] = load_questions_from_github(
+            st.session_state["selected_subject"]
+        )
+    else:
+        st.session_state["questions"] = []
 
 if "submitted" not in st.session_state:
     st.session_state["submitted"] = False
@@ -154,38 +215,54 @@ def change_subject(new_key: str):
 
 
 # ============================
-# 🧭 SIDEBAR MENU
+# 🧭 SIDEBAR MENU (URUTAN FIX)
 # ============================
 st.sidebar.title("Menu")
 
-# Pilih mata kuliah dulu
-subject_labels = {k: v["label"] for k, v in MATKULS.items()}
-current_subject = st.sidebar.selectbox(
-    "Pilih Mata Kuliah:",
-    options=list(subject_labels.keys()),
-    format_func=lambda k: subject_labels[k],
-    index=list(subject_labels.keys()).index(st.session_state["selected_subject"]),
-    on_change=lambda: None,
-)
+subjects = st.session_state["subjects"]
+subjects_dict = get_subjects_dict()
 
-# Kalau berubah, kita panggil manually
-if current_subject != st.session_state["selected_subject"]:
-    change_subject(current_subject)
+if subjects:
+    subject_labels = {s["key"]: s["label"] for s in subjects}
+    current_subject = st.sidebar.selectbox(
+        "Pilih Mata Kuliah:",
+        options=list(subject_labels.keys()),
+        format_func=lambda k: subject_labels[k],
+        index=list(subject_labels.keys()).index(
+            st.session_state["selected_subject"]
+        ) if st.session_state["selected_subject"] in subject_labels else 0,
+    )
 
-matkul_label = subject_labels[st.session_state["selected_subject"]]
+    if current_subject != st.session_state["selected_subject"]:
+        change_subject(current_subject)
 
-menu = st.sidebar.radio(
-    "Pilih halaman:",
-    ("Kerjakan Soal", "Tambah / Hapus / Edit Soal"),
-    on_change=reset_submit_flag,
-)
+    matkul_key = st.session_state["selected_subject"]
+    matkul_label = subject_labels[matkul_key]
+else:
+    matkul_key = None
+    matkul_label = "-"
+    st.sidebar.info("Belum ada mata kuliah. Tambahkan dulu di menu 'Kelola Matkul'.")
 
-if st.sidebar.button("🔄 Muat ulang soal"):
+# Menu utama: urutan 1–3 sesuai permintaan
+if subjects:
+    menu = st.sidebar.radio(
+        "Pilih halaman:",
+        (
+            "Kerjakan Soal",               # 1
+            "Tambah / Hapus / Edit Soal",  # 2
+            "Kelola Matkul",               # 3
+        ),
+        on_change=reset_submit_flag,
+    )
+else:
+    menu = st.sidebar.radio("Pilih halaman:", ("Kelola Matkul",))
+
+if subjects and st.sidebar.button("🔄 Muat ulang soal dari GitHub (READ)"):
     st.session_state["questions"] = load_questions_from_github(
         st.session_state["selected_subject"]
     )
     st.session_state["submitted"] = False
-    st.sidebar.success(f"Soal {matkul_label} berhasil dimuat ulang.")
+    st.sidebar.success(f"Soal {matkul_label} berhasil dimuat ulang dari GitHub.")
     st.rerun()
 
 st.sidebar.markdown("---")
@@ -199,12 +276,16 @@ st.sidebar.caption("Perubahan disimpan ke GitHub saat kamu tambah/hapus/edit soa
 # 📄 HALAMAN 1: KERJAKAN SOAL
 # ============================
 def page_kerjakan_soal():
-    matkul_key = st.session_state["selected_subject"]
-    matkul_label_local = MATKULS[matkul_key]["label"]
+    if not matkul_key:
+        st.warning("Belum ada mata kuliah. Tambahkan dulu di menu 'Kelola Matkul'.")
+        return
+
+    matkul_label_local = subjects_dict[matkul_key]["label"]
+    filename = subjects_dict[matkul_key]["filename"]
 
     st.title(f"Kerjakan Soal – {matkul_label_local} 🧠")
     st.write(
-        f"Sumber soal: **{MATKULS[matkul_key]['filename']}** di GitHub.\n\n"
+        f"Sumber soal: **{filename}** di GitHub.\n\n"
         "Kerjakan semua soal dulu, lalu klik **Periksa Jawaban** "
         "untuk melihat mana yang benar/salah dan nilai akhirnya."
     )
@@ -213,7 +294,7 @@ def page_kerjakan_soal():
     if not questions:
         st.warning(
             "Belum ada soal yang dimuat untuk matkul ini. "
-            "Coba klik 'Muat ulang soal.' "
+            "Coba klik 'Muat ulang soal dari GitHub' di sidebar atau tambahkan soal di menu Kelola."
         )
         return
 
@@ -278,21 +359,23 @@ def page_kerjakan_soal():
 # ✏ HALAMAN 2: TAMBAH / HAPUS / EDIT SOAL
 # ============================
 def page_tambah_hapus_edit_soal():
-    matkul_key = st.session_state["selected_subject"]
-    matkul_label_local = MATKULS[matkul_key]["label"]
+    if not matkul_key:
+        st.warning("Belum ada mata kuliah. Tambahkan dulu di menu 'Kelola Matkul'.")
+        return
+
+    matkul_label_local = subjects_dict[matkul_key]["label"]
+    filename = subjects_dict[matkul_key]["filename"]
 
     st.title(f"Kelola Soal – {matkul_label_local} ✍️")
     st.write(
         "Perubahan di sini akan:\n"
         f"1. Mengubah soal di session untuk matkul **{matkul_label_local}**.\n"
-        f"2. **Langsung menyimpan ulang {MATKULS[matkul_key]['filename']} ke GitHub (auto-save).**"
+        f"2. **Langsung menyimpan ulang {filename} ke GitHub (auto-save).**"
     )
 
     questions = st.session_state["questions"]
 
-    # =====================
-    # 🔁 FORM EDIT SOAL (JIKA ADA YANG SEDANG DIEDIT)
-    # =====================
+    # === FORM EDIT (JIKA SEDANG EDIT) ===
     editing_id = st.session_state.get("editing_id")
     if editing_id is not None:
         q_edit = next((q for q in questions if q.get("id") == editing_id), None)
@@ -415,9 +498,7 @@ def page_tambah_hapus_edit_soal():
 
     st.markdown("---")
 
-    # =====================
-    # ➕ FORM TAMBAH SOAL BARU
-    # =====================
+    # === FORM TAMBAH SOAL BARU ===
     st.subheader("Tambah Soal Baru")
 
     with st.form("form_tambah_soal"):
@@ -511,9 +592,7 @@ def page_tambah_hapus_edit_soal():
 
     st.markdown("---")
 
-    # =====================
-    # 📋 DAFTAR SOAL + EDIT/HAPUS
-    # =====================
+    # === DAFTAR SOAL + EDIT/HAPUS ===
     st.subheader("Daftar Soal Saat Ini")
 
     if not questions:
@@ -545,9 +624,104 @@ def page_tambah_hapus_edit_soal():
 
 
 # ============================
+# 🧮 HALAMAN 3: KELOLA MATKUL
+# ============================
+def slugify(text: str) -> str:
+    text = text.lower()
+    text = re.sub(r"[^a-z0-9]+", "", text)
+    return text or "matkul"
+
+
+def page_kelola_matkul():
+    st.title("Kelola Mata Kuliah 📚")
+
+    st.write(
+        "Di sini kamu bisa **menambah mata kuliah baru**.\n\n"
+        "- Saat menambah matkul baru, app akan:\n"
+        "  1. Menambah entri baru di `subjects.json`\n"
+        "  2. Membuat file JSON soal kosong untuk matkul tersebut di GitHub\n"
+        "\n"
+        "Kalau mau menghapus matkul dari daftar, sementara ini masih lebih aman lewat GitHub langsung."
+    )
+
+    subjects = st.session_state["subjects"]
+
+    st.subheader("Tambah Mata Kuliah Baru")
+
+    with st.form("form_tambah_matkul"):
+        label = st.text_input("Nama mata kuliah", placeholder="Misal: PKN / Pancasila")
+        filename_input = st.text_input(
+            "Nama file JSON di GitHub (opsional)",
+            placeholder="Kosongkan untuk otomatis, misal: pkn.json",
+        )
+
+        submitted = st.form_submit_button("Tambah Mata Kuliah")
+
+        if submitted:
+            if not label.strip():
+                st.error("Nama mata kuliah tidak boleh kosong.")
+                return
+
+            # buat key unik
+            base_key = slugify(label)
+            key = base_key
+            i = 2
+            existing_keys = {s["key"] for s in subjects}
+            while key in existing_keys:
+                key = f"{base_key}{i}"
+                i += 1
+
+            # tentukan filename
+            if filename_input.strip():
+                filename = filename_input.strip()
+                if not filename.endswith(".json"):
+                    filename += ".json"
+            else:
+                filename = f"{key}.json"
+
+            # tambahkan ke subjects list
+            new_subject = {
+                "key": key,
+                "label": label.strip(),
+                "filename": filename,
+            }
+            subjects.append(new_subject)
+
+            # simpan subjects.json
+            if save_subjects_to_github(subjects):
+                st.session_state["subjects"] = subjects
+
+                # buat file soal kosong untuk matkul baru
+                if save_questions_to_github([], key):
+                    st.success(
+                        f"Mata kuliah **{label}** berhasil ditambahkan dengan file `{filename}`."
+                    )
+                    # set sebagai matkul aktif
+                    change_subject(key)
+                    st.rerun()
+
+    st.markdown("---")
+
+    st.subheader("Daftar Mata Kuliah yang Tersedia")
+
+    if not subjects:
+        st.info("Belum ada mata kuliah. Tambahkan di form di atas.")
+        return
+
+    for s in subjects:
+        st.markdown(
+            f"- **{s['label']}**  \n"
+            f"  • key: `{s['key']}`  \n"
+            f"  • file: `{s['filename']}`"
+        )
+
+
+# ============================
 # 🚦 ROUTING HALAMAN
 # ============================
 if menu == "Kerjakan Soal":
     page_kerjakan_soal()
 elif menu == "Tambah / Hapus / Edit Soal":
     page_tambah_hapus_edit_soal()
+elif menu == "Kelola Matkul":
+    page_kelola_matkul()
