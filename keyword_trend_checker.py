@@ -1,93 +1,135 @@
 import streamlit as st
-import pandas as pd
-import matplotlib.pyplot as plt
-from pytrends.request import TrendReq
 
-st.set_page_config(page_title="Keyword Trend Checker", layout="wide")
-st.title("📈 Keyword Trend Checker")
+st.set_page_config(page_title="Ujian E-Learning Ilham", layout="centered")
 
-@st.cache_data(ttl=3600)
-def get_trend_data(keywords, geo, timeframe):
-    pytrends = TrendReq(
-        hl='id-ID',
-        tz=360,
-        retries=5,
-        backoff_factor=0.5,
-        requests_args={'headers': {'User-Agent': 'Mozilla/5.0'}}
-    )
-    pytrends.build_payload(keywords, geo=geo, timeframe=timeframe)
-    data = pytrends.interest_over_time()
-    if data.empty:
-        return None, None
-    related = pytrends.related_queries()
-    return data, related
+# ============================
+# 🔧 BAGIAN SOAL – BISA KAMU EDIT
+# ============================
+# type: "mc" = pilihan ganda, "short" = jawaban singkat
+# correct_answer:
+#   - untuk "mc" => isi dengan TEKS opsi yang benar
+#   - untuk "short" => isi dengan jawaban ideal (dicek lower-case & trim)
+questions = [
+    {
+        "id": 1,
+        "type": "mc",
+        "question": "Ekspansi fiskal pemerintah biasanya dilakukan untuk...",
+        "options": [
+            "Menurunkan pendapatan nasional",
+            "Meningkatkan permintaan agregat",
+            "Mengurangi jumlah uang beredar",
+            "Menurunkan tingkat inflasi"
+        ],
+        "correct_answer": "Meningkatkan permintaan agregat",
+        "explanation": "Ekspansi fiskal (menaikkan belanja negara / menurunkan pajak) akan mendorong permintaan agregat."
+    },
+    {
+        "id": 2,
+        "type": "mc",
+        "question": "Dalam neraca perusahaan manufaktur, urutan persediaan yang benar adalah...",
+        "options": [
+            "Barang jadi – Barang dalam proses – Bahan baku",
+            "Bahan baku – Barang dalam proses – Barang jadi",
+            "Barang dalam proses – Bahan baku – Barang jadi",
+            "Barang jadi – Bahan baku – Barang dalam proses"
+        ],
+        "correct_answer": "Bahan baku – Barang dalam proses – Barang jadi",
+        "explanation": "Urutan alur produksi: Bahan baku → Barang dalam proses → Barang jadi."
+    },
+    {
+        "id": 3,
+        "type": "mc",
+        "question": "Tarif overhead pabrik di muka (predetermined overhead rate) dihitung dengan...",
+        "options": [
+            "BOP aktual / Jam mesin aktual",
+            "BOP taksiran / Aktivitas operasional taksiran",
+            "BOP aktual / Aktivitas taksiran",
+            "Produksi aktual / BOP taksiran"
+        ],
+        "correct_answer": "BOP taksiran / Aktivitas operasional taksiran",
+        "explanation": "Tarif di muka = BOP taksiran ÷ dasar pembebanan taksiran (jam TKL, jam mesin, dll)."
+    },
+    {
+        "id": 4,
+        "type": "short",
+        "question": "Tuliskan urutan penyajian persediaan di neraca perusahaan manufaktur!",
+        "correct_answer": "bahan baku - barang dalam proses - barang jadi",
+        "explanation": "Jawaban ideal: Bahan baku – Barang dalam proses – Barang jadi."
+    },
+    # Tambah soal lagi di bawah ini kalau mau
+    # {
+    #     "id": 5,
+    #     "type": "short",
+    #     "question": "Contoh soal isian singkat...",
+    #     "correct_answer": "isi jawaban di sini",
+    #     "explanation": "Penjelasan singkat."
+    # },
+]
 
-with st.form("trend_form"):
-    keywords_input = st.text_input("Masukkan kata kunci (pisahkan dengan koma, maksimal 5)", "kaos polos")
-    geo = st.selectbox("Wilayah", options=[
-        ("Indonesia", "ID"),
-        ("Global", ""),
-        ("Amerika Serikat", "US"),
-        ("Malaysia", "MY"),
-        ("Singapura", "SG")
-    ])
-    time_range = st.selectbox("Rentang waktu", options=[
-        ("7 hari terakhir", "now 7-d"),
-        ("30 hari terakhir", "now 30-d"),
-        ("12 bulan terakhir", "today 12-m"),
-        ("5 tahun terakhir", "today 5-y")
-    ])
-    submitted = st.form_submit_button("🔍 Cek Tren")
+# ============================
+# ⛔ DI BAWAH INI BIARKAN SAJA
+# ============================
 
-if submitted:
-    keyword_list = [k.strip() for k in keywords_input.split(",") if k.strip()]
-    st.write("Debug: keywords =", keyword_list)
-    st.write("Debug: geo =", geo[1])
-    st.write("Debug: timeframe =", time_range)
+if "submitted" not in st.session_state:
+    st.session_state["submitted"] = False
 
-    if len(keyword_list) == 0:
-        st.warning("Masukkan minimal satu kata kunci.")
-    elif len(keyword_list) > 5:
-        st.warning("Maksimal 5 kata kunci per pencarian.")
-    else:
-        try:
-            data, related_queries = get_trend_data(keyword_list, geo[1], time_range[1])
-            if data is None:
-                st.error("Data tren tidak tersedia untuk kata kunci tersebut.")
-            else:
-                data = data.drop(columns=["isPartial"], errors="ignore")
 
-                st.subheader("📊 Grafik Tren Pencarian")
-                fig, ax = plt.subplots()
-                data.plot(ax=ax)
-                plt.ylabel("Popularitas (%)")
-                plt.xlabel("Tanggal")
-                plt.legend(loc='upper left')
-                st.pyplot(fig)
+def submit():
+    st.session_state["submitted"] = True
 
-                st.subheader(f"🔎 Related Queries untuk: {keyword_list[0]}")
-                try:
-                    related = related_queries.get(keyword_list[0], None)
-                    st.write("Debug related:", related)
-                    st.write("Tipe related:", type(related))
 
-                    if related and isinstance(related, dict):
-                        top_df = related.get("top", None)
-                        st.write("Debug top_df:", top_df)
-                        if top_df is not None and not top_df.empty:
-                            st.table(top_df.head(10))
-                        else:
-                            st.write("Tidak ada related queries ditemukan.")
-                    else:
-                        st.write("Tidak ada related queries ditemukan.")
-                except Exception as e:
-                    st.error(f"Error saat mengambil related queries: {e}")
+st.title("Ujian E-Learning Ilham 🧠")
+st.write(
+    "Latihan UAS mandiri. Kerjakan dulu semua soal, lalu klik **Periksa Jawaban** "
+    "untuk melihat benar/salah dan nilai."
+)
 
-        except Exception as e:
-            if "429" in str(e):
-                st.error("Limitasi request (429 Too Many Requests). Coba lagi nanti atau kurangi frekuensi pencarian.")
-            else:
-                st.error(f"Gagal mengambil data Google Trends: {e}")
+correct_count = 0
+total_questions = len(questions)
 
-st.markdown("---")
-st.markdown("📊 Data dari Google Trends | Dibuat dengan ❤️ oleh Kamu")
+# Render soal
+for q in questions:
+    st.markdown(f"### Soal {q['id']}")
+    st.write(q["question"])
+
+    user_answer = None
+
+    if q["type"] == "mc":
+        user_answer = st.radio(
+            "Pilih jawaban:",
+            q["options"],
+            key=f"q{q['id']}",
+            index=None
+        )
+    elif q["type"] == "short":
+        user_answer = st.text_area(
+            "Jawabanmu:",
+            key=f"q{q['id']}",
+            height=60
+        )
+
+    # Tampilkan feedback jika sudah submit
+    if st.session_state["submitted"]:
+        ua = (user_answer or "").strip().lower()
+        ca = (q["correct_answer"] or "").strip().lower()
+
+        if ua == "":
+            st.markdown("❗ **Belum dijawab.**")
+        elif ua == ca:
+            correct_count += 1
+            st.markdown("✅ **Benar**")
+        else:
+            st.markdown("❌ **Salah**")
+
+        if q.get("explanation"):
+            st.markdown(f"> ℹ️ *{q['explanation']}*")
+
+    st.markdown("---")
+
+# Tombol submit
+st.button("Periksa Jawaban", on_click=submit)
+
+# Skor total
+if st.session_state["submitted"]:
+    score = (correct_count / total_questions) * 100 if total_questions > 0 else 0
+    st.success(f"Hasil: {correct_count} dari {total_questions} soal benar. Nilai: {score:.2f}")
