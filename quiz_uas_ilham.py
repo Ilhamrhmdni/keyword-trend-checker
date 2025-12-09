@@ -1,6 +1,6 @@
 import streamlit as st
 
-st.set_page_config(page_title="Ujian E-Learning Yulia", layout="centered")
+st.set_page_config(page_title="Ujian E-Learning Ilham", layout="centered")
 
 # ============================
 # 🔧 SOAL DEFAULT (bisa diedit di sini)
@@ -59,7 +59,6 @@ default_questions = [
 # 🔁 INISIALISASI STATE
 # ============================
 if "questions" not in st.session_state:
-    # copy default questions ke session
     st.session_state["questions"] = list(default_questions)
 
 if "submitted" not in st.session_state:
@@ -98,14 +97,12 @@ def page_kerjakan_soal():
     correct_count = 0
     total_questions = len(questions)
 
-    # Render semua soal
     for q in questions:
         st.markdown(f"### Soal {q['id']}")
         st.write(q["question"])
 
         user_answer = None
 
-        # Pilihan ganda
         if q["type"] == "mc":
             user_answer = st.radio(
                 "Pilih jawaban:",
@@ -113,8 +110,6 @@ def page_kerjakan_soal():
                 key=f"q{q['id']}",
                 index=None
             )
-
-        # Jawaban singkat
         elif q["type"] == "short":
             user_answer = st.text_area(
                 "Jawabanmu:",
@@ -122,7 +117,6 @@ def page_kerjakan_soal():
                 height=60
             )
 
-        # Feedback setelah tombol ditekan
         if st.session_state["submitted"]:
             ua = (user_answer or "").strip().lower()
             ca = (q["correct_answer"] or "").strip().lower()
@@ -140,12 +134,10 @@ def page_kerjakan_soal():
 
         st.markdown("---")
 
-    # Tombol submit
     if st.button("Periksa Jawaban"):
         st.session_state["submitted"] = True
         st.experimental_rerun()
 
-    # Skor total
     if st.session_state["submitted"]:
         score = (correct_count / total_questions) * 100 if total_questions > 0 else 0
         st.success(
@@ -155,14 +147,17 @@ def page_kerjakan_soal():
 
 
 # ============================
-# ➕ HALAMAN 2: TAMBAH SOAL
+# ➕ HALAMAN 2: TAMBAH & HAPUS SOAL
 # ============================
 def page_tambah_soal():
-    st.title("Tambah Soal ✍️")
+    st.title("Tambah / Hapus Soal ✍️")
     st.write(
-        "Di sini kamu bisa nambah soal baru. "
-        "Soal yang ditambahkan akan langsung muncul di menu **Kerjakan Soal** (selama app masih berjalan)."
+        "Di sini kamu bisa menambah soal baru dan juga menghapus soal yang sudah ada. "
+        "Soal yang ditambahkan langsung muncul di menu **Kerjakan Soal**."
     )
+
+    # ---------- FORM TAMBAH SOAL ----------
+    st.subheader("Tambah Soal Baru")
 
     with st.form("form_tambah_soal"):
         tipe = st.selectbox(
@@ -183,7 +178,6 @@ def page_tambah_soal():
             opt_c = st.text_input("Opsi C", value="")
             opt_d = st.text_input("Opsi D", value="")
 
-            # Simpan hanya yang tidak kosong
             options = [o for o in [opt_a, opt_b, opt_c, opt_d] if o.strip()]
 
             kunci_huruf = st.selectbox(
@@ -191,14 +185,13 @@ def page_tambah_soal():
                 ("A", "B", "C", "D")
             )
 
-            # Tentukan correct_answer berdasarkan huruf & opsi
             index_mapping = {"A": 0, "B": 1, "C": 2, "D": 3}
             idx = index_mapping[kunci_huruf]
 
             if idx < len(options):
                 correct_answer = options[idx].strip()
             else:
-                correct_answer = ""  # nanti dicek saat submit
+                correct_answer = ""
 
         else:  # Jawaban singkat
             correct_answer = st.text_input(
@@ -245,10 +238,35 @@ def page_tambah_soal():
                     "explanation": explanation.strip()
                 }
 
-            # Tambahkan ke session_state
             st.session_state["questions"].append(new_question)
             st.success(f"Soal baru berhasil ditambahkan (ID {new_question['id']}).")
-            st.info("Coba buka menu **Kerjakan Soal** di sidebar untuk melihat soal yang baru.")
+            st.info("Coba lihat ke bagian bawah atau buka menu **Kerjakan Soal**.")
+
+    st.markdown("---")
+
+    # ---------- TABEL / DAFTAR SOAL + HAPUS ----------
+    st.subheader("Daftar Soal Saat Ini")
+
+    if not st.session_state["questions"]:
+        st.info("Belum ada soal.")
+        return
+
+    for q in st.session_state["questions"]:
+        col1, col2, col3 = st.columns([6, 2, 2])
+        with col1:
+            potong = (q["question"][:90] + "…") if len(q["question"]) > 90 else q["question"]
+            st.markdown(f"**ID {q['id']}** – {potong}")
+        with col2:
+            jenis = "Pilihan Ganda" if q["type"] == "mc" else "Jawaban Singkat"
+            st.markdown(f"_{jenis}_")
+        with col3:
+            if st.button("Hapus", key=f"hapus-{q['id']}"):
+                # hapus soal dengan ID ini
+                st.session_state["questions"] = [
+                    qq for qq in st.session_state["questions"] if qq["id"] != q["id"]
+                ]
+                st.success(f"Soal dengan ID {q['id']} telah dihapus.")
+                st.experimental_rerun()
 
 
 # ============================
