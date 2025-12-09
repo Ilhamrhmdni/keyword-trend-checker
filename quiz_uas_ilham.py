@@ -12,7 +12,7 @@ st.set_page_config(page_title="Ujian E-Learning Ilham", layout="centered")
 
 # 1) RAW URL soal.json
 URL_SOAL_GITHUB = (
-    "https://raw.githubusercontent.com/Ilhamrhmdni/keyword-trend-checker/refs/heads/main/soal.json"
+    "https://raw.githubusercontent.com/Ilhamrhmdni/keyword-trend-checker/main/soal.json"
     # contoh: "https://raw.githubusercontent.com/ilhamdank/quiz-uas/main/soal.json"
 )
 
