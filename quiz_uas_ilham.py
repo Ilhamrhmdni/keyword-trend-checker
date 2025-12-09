@@ -7,48 +7,68 @@ import streamlit as st
 st.set_page_config(page_title="Ujian E-Learning Ilham", layout="centered")
 
 # ======================================
-# 🔗 KONFIGURASI GITHUB – SUDAH DISET UNTUKMU
+# 🔗 KONFIGURASI GITHUB (REPO KAMU)
 # ======================================
 
-# 1) RAW URL soal.json (untuk READ)
-URL_SOAL_GITHUB = (
-    "https://raw.githubusercontent.com/Ilhamrhmdni/keyword-trend-checker/main/soal.json"
-)
-
-# 2) Nama repo "username/repo"
 REPO_NAME = "Ilhamrhmdni/keyword-trend-checker"
-
-# 3) Lokasi file soal di repo
-FILE_PATH = "soal.json"  # karena soal.json ada di root
-
-# 4) Branch yang dipakai
 BRANCH = "main"
+
+# 🎓 DAFTAR MATA KULIAH & NAMA FILE JSON
+# key = kode internal, label = tampilan di UI, filename = nama file di repo
+MATKULS = {
+    "pkn": {
+        "label": "PKN / Pancasila",
+        "filename": "pkn.json",
+    },
+    "bindo": {
+        "label": "Bahasa Indonesia",
+        "filename": "bahasaindonesia.json",
+    },
+    # contoh kalau mau nambah:
+    # "ekonomi": {
+    #     "label": "Ekonomi Makro",
+    #     "filename": "ekonomi.json",
+    # },
+}
+
+
+def get_raw_url(filename: str) -> str:
+    """Bikin RAW URL GitHub dari nama file."""
+    return f"https://raw.githubusercontent.com/{REPO_NAME}/{BRANCH}/{filename}"
 
 
 # ======================================
 # 📥 FUNGSI LOAD SOAL DARI GITHUB (READ)
 # ======================================
-def load_questions_from_github():
+def load_questions_from_github(matkul_key: str):
+    cfg = MATKULS.get(matkul_key)
+    if not cfg:
+        st.error(f"Matkul '{matkul_key}' tidak dikenal.")
+        return []
+
+    raw_url = get_raw_url(cfg["filename"])
     try:
-        with urllib.request.urlopen(URL_SOAL_GITHUB) as response:
+        with urllib.request.urlopen(raw_url) as response:
             data = response.read().decode("utf-8")
         questions = json.loads(data)
         if isinstance(questions, list):
             return questions
         else:
-            st.warning("Format JSON soal tidak berupa list []. Periksa soal.json.")
+            st.warning(
+                f"Format JSON {cfg['filename']} tidak berupa list []. Periksa file di GitHub."
+            )
             return []
     except Exception as e:
-        st.error(f"Gagal memuat soal dari GitHub (read): {e}")
+        st.error(f"Gagal memuat soal {cfg['filename']} dari GitHub (read): {e}")
         return []
 
 
 # ======================================
 # 💾 FUNGSI SAVE SOAL KE GITHUB (WRITE)
 # ======================================
-def save_questions_to_github(questions) -> bool:
+def save_questions_to_github(questions, matkul_key: str) -> bool:
     """
-    Meng-overwrite soal.json di GitHub dengan isi dari 'questions'.
+    Meng-overwrite file JSON matkul di GitHub dengan isi dari 'questions'.
     Return True kalau sukses, False kalau gagal.
     """
     token = st.secrets.get("GITHUB_TOKEN")
@@ -56,7 +76,13 @@ def save_questions_to_github(questions) -> bool:
         st.error("GITHUB_TOKEN belum diset di secrets. Set dulu di Streamlit secrets.")
         return False
 
-    api_url = f"https://api.github.com/repos/{REPO_NAME}/contents/{FILE_PATH}"
+    cfg = MATKULS.get(matkul_key)
+    if not cfg:
+        st.error(f"Matkul '{matkul_key}' tidak dikenal.")
+        return False
+
+    filename = cfg["filename"]
+    api_url = f"https://api.github.com/repos/{REPO_NAME}/contents/{filename}"
 
     headers = {
         "Authorization": f"Bearer {token}",
@@ -72,7 +98,7 @@ def save_questions_to_github(questions) -> bool:
         sha = None  # file belum ada, nanti dibuat baru
     else:
         st.error(
-            f"Gagal mengambil info soal.json dari GitHub: {get_r.status_code} {get_r.text}"
+            f"Gagal mengambil info {filename} dari GitHub: {get_r.status_code} {get_r.text}"
         )
         return False
 
@@ -80,7 +106,7 @@ def save_questions_to_github(questions) -> bool:
     encoded_content = base64.b64encode(new_content.encode("utf-8")).decode("utf-8")
 
     payload = {
-        "message": "Update soal via Streamlit app",
+        "message": f"Update soal {filename} via Streamlit app",
         "content": encoded_content,
         "branch": BRANCH,
     }
@@ -90,7 +116,7 @@ def save_questions_to_github(questions) -> bool:
     put_r = requests.put(api_url, headers=headers, json=payload)
 
     if put_r.status_code in (200, 201):
-        st.success("✔ soal.json berhasil disimpan ke GitHub.")
+        st.success(f"✔ {filename} berhasil disimpan ke GitHub.")
         return True
     else:
         st.error(f"Gagal menyimpan soal ke GitHub: {put_r.status_code} {put_r.text}")
@@ -100,8 +126,14 @@ def save_questions_to_github(questions) -> bool:
 # ============================
 # 🔁 INISIALISASI STATE
 # ============================
+if "selected_subject" not in st.session_state:
+    # default matkul = yang pertama di MATKULS
+    st.session_state["selected_subject"] = next(iter(MATKULS.keys()))
+
 if "questions" not in st.session_state:
-    st.session_state["questions"] = load_questions_from_github()
+    st.session_state["questions"] = load_questions_from_github(
+        st.session_state["selected_subject"]
+    )
 
 if "submitted" not in st.session_state:
     st.session_state["submitted"] = False
@@ -114,10 +146,34 @@ def reset_submit_flag():
     st.session_state["submitted"] = False
 
 
+def change_subject(new_key: str):
+    st.session_state["selected_subject"] = new_key
+    st.session_state["questions"] = load_questions_from_github(new_key)
+    st.session_state["submitted"] = False
+    st.session_state["editing_id"] = None
+
+
 # ============================
 # 🧭 SIDEBAR MENU
 # ============================
 st.sidebar.title("Menu")
+
+# Pilih mata kuliah dulu
+subject_labels = {k: v["label"] for k, v in MATKULS.items()}
+current_subject = st.sidebar.selectbox(
+    "Pilih Mata Kuliah:",
+    options=list(subject_labels.keys()),
+    format_func=lambda k: subject_labels[k],
+    index=list(subject_labels.keys()).index(st.session_state["selected_subject"]),
+    on_change=lambda: None,
+)
+
+# Kalau berubah, kita panggil manually
+if current_subject != st.session_state["selected_subject"]:
+    change_subject(current_subject)
+
+matkul_label = subject_labels[st.session_state["selected_subject"]]
+
 menu = st.sidebar.radio(
     "Pilih halaman:",
     ("Kerjakan Soal", "Tambah / Hapus / Edit Soal"),
@@ -125,13 +181,17 @@ menu = st.sidebar.radio(
 )
 
 if st.sidebar.button("🔄 Muat ulang soal dari GitHub (READ)"):
-    st.session_state["questions"] = load_questions_from_github()
+    st.session_state["questions"] = load_questions_from_github(
+        st.session_state["selected_subject"]
+    )
     st.session_state["submitted"] = False
-    st.sidebar.success("Soal berhasil dimuat ulang dari GitHub.")
+    st.sidebar.success(f"Soal {matkul_label} berhasil dimuat ulang dari GitHub.")
     st.rerun()
 
 st.sidebar.markdown("---")
-st.sidebar.write(f"Jumlah soal di session: **{len(st.session_state['questions'])}**")
+st.sidebar.write(
+    f"Matkul aktif: **{matkul_label}**\n\nJumlah soal di session: **{len(st.session_state['questions'])}**"
+)
 st.sidebar.caption("Perubahan disimpan ke GitHub saat kamu tambah/hapus/edit soal.")
 
 
@@ -139,9 +199,12 @@ st.sidebar.caption("Perubahan disimpan ke GitHub saat kamu tambah/hapus/edit soa
 # 📄 HALAMAN 1: KERJAKAN SOAL
 # ============================
 def page_kerjakan_soal():
-    st.title("Kerjakan Soal Ujian 🧠")
+    matkul_key = st.session_state["selected_subject"]
+    matkul_label_local = MATKULS[matkul_key]["label"]
+
+    st.title(f"Kerjakan Soal – {matkul_label_local} 🧠")
     st.write(
-        "Sumber soal utama: **soal.json di GitHub**.\n\n"
+        f"Sumber soal: **{MATKULS[matkul_key]['filename']}** di GitHub.\n\n"
         "Kerjakan semua soal dulu, lalu klik **Periksa Jawaban** "
         "untuk melihat mana yang benar/salah dan nilai akhirnya."
     )
@@ -149,7 +212,8 @@ def page_kerjakan_soal():
     questions = st.session_state["questions"]
     if not questions:
         st.warning(
-            "Belum ada soal yang dimuat. Coba klik 'Muat ulang soal dari GitHub' di sidebar."
+            "Belum ada soal yang dimuat untuk matkul ini. "
+            "Coba klik 'Muat ulang soal dari GitHub' di sidebar."
         )
         return
 
@@ -170,13 +234,13 @@ def page_kerjakan_soal():
             user_answer = st.radio(
                 "Pilih jawaban:",
                 options,
-                key=f"q{q_id}",
+                key=f"{matkul_key}-q{q_id}",
                 index=None,
             )
         else:  # short
             user_answer = st.text_area(
                 "Jawabanmu:",
-                key=f"q{q_id}",
+                key=f"{matkul_key}-q{q_id}",
                 height=60,
             )
 
@@ -214,11 +278,14 @@ def page_kerjakan_soal():
 # ✏ HALAMAN 2: TAMBAH / HAPUS / EDIT SOAL
 # ============================
 def page_tambah_hapus_edit_soal():
-    st.title("Tambah / Hapus / Edit Soal ✍️")
+    matkul_key = st.session_state["selected_subject"]
+    matkul_label_local = MATKULS[matkul_key]["label"]
+
+    st.title(f"Kelola Soal – {matkul_label_local} ✍️")
     st.write(
         "Perubahan di sini akan:\n"
-        "1. Mengubah soal di session.\n"
-        "2. **Langsung menyimpan ulang soal.json ke GitHub (auto-save).**"
+        f"1. Mengubah soal di session untuk matkul **{matkul_label_local}**.\n"
+        f"2. **Langsung menyimpan ulang {MATKULS[matkul_key]['filename']} ke GitHub (auto-save).**"
     )
 
     questions = st.session_state["questions"]
@@ -255,7 +322,6 @@ def page_tambah_hapus_edit_soal():
                 correct_answer = ""
 
                 if q_type == "mc":
-                    # ambil opsi lama (maks 4)
                     old_opts = q_edit.get("options", [])
                     opt_a = st.text_input(
                         "Opsi A", value=old_opts[0] if len(old_opts) > 0 else ""
@@ -270,9 +336,7 @@ def page_tambah_hapus_edit_soal():
                         "Opsi D", value=old_opts[3] if len(old_opts) > 3 else ""
                     )
 
-                    options = [
-                        o for o in [opt_a, opt_b, opt_c, opt_d] if o.strip()
-                    ]
+                    options = [o for o in [opt_a, opt_b, opt_c, opt_d] if o.strip()]
 
                     kunci_huruf = st.selectbox(
                         "Jawaban benar (pilih huruf)",
@@ -338,13 +402,12 @@ def page_tambah_hapus_edit_soal():
                                 "explanation": explanation.strip(),
                             }
 
-                        # ganti di list
                         for i, qq in enumerate(questions):
                             if qq.get("id") == editing_id:
                                 questions[i] = updated
                                 break
 
-                        if save_questions_to_github(questions):
+                        if save_questions_to_github(questions, matkul_key):
                             st.session_state["questions"] = questions
                             st.session_state["editing_id"] = None
                             st.success(f"Soal ID {editing_id} berhasil diupdate.")
@@ -440,7 +503,7 @@ def page_tambah_hapus_edit_soal():
                     }
 
                 questions.append(new_question)
-                if save_questions_to_github(questions):
+                if save_questions_to_github(questions, matkul_key):
                     st.session_state["questions"] = questions
                     st.success(
                         f"Soal baru berhasil ditambahkan (ID {new_question['id']})."
@@ -449,7 +512,7 @@ def page_tambah_hapus_edit_soal():
     st.markdown("---")
 
     # =====================
-    # 📋 DAFTAR SOAL + TOMBOL EDIT/HAPUS
+    # 📋 DAFTAR SOAL + EDIT/HAPUS
     # =====================
     st.subheader("Daftar Soal Saat Ini")
 
@@ -468,15 +531,15 @@ def page_tambah_hapus_edit_soal():
             jenis = "Pilihan Ganda" if q.get("type") == "mc" else "Jawaban Singkat"
             st.markdown(f"_{jenis}_")
         with col3:
-            if st.button("Edit", key=f"edit-{q_id}"):
+            if st.button("Edit", key=f"edit-{matkul_key}-{q_id}"):
                 st.session_state["editing_id"] = q_id
                 st.rerun()
         with col4:
-            if st.button("Hapus", key=f"hapus-{q_id}"):
+            if st.button("Hapus", key=f"hapus-{matkul_key}-{q_id}"):
                 st.session_state["questions"] = [
                     qq for qq in questions if qq.get("id") != q_id
                 ]
-                if save_questions_to_github(st.session_state["questions"]):
+                if save_questions_to_github(st.session_state["questions"], matkul_key):
                     st.success(f"Soal dengan ID {q_id} telah dihapus.")
                     st.rerun()
 
