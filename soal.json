@@ -1,1 +1,15 @@
-[]
+[
+  {
+    "id": 1,
+    "type": "mc",
+    "question": "Yang bukan termasuk dalam rumusan Trisila yang diajukan oleh Ir. Soekarno pada\npidatonya tanggal 1 Juni 1945, adalah ...",
+    "options": [
+      "sosio-demokrasi",
+      "ketuhanan",
+      "keadilan sosial",
+      "sosio-nasionalisme"
+    ],
+    "correct_answer": "ketuhanan",
+    "explanation": ""
+  }
+]
