@@ -1,65 +1,42 @@
+import json
+import urllib.request
 import streamlit as st
 
 st.set_page_config(page_title="Ujian E-Learning Ilham", layout="centered")
 
-# ============================
-# 🔧 SOAL DEFAULT (bisa diedit di sini)
-# ============================
-default_questions = [
-    {
-        "id": 1,
-        "type": "mc",  # multiple choice
-        "question": "Ekspansi fiskal pemerintah biasanya dilakukan untuk...",
-        "options": [
-            "Menurunkan pendapatan nasional",
-            "Meningkatkan permintaan agregat",
-            "Mengurangi jumlah uang beredar",
-            "Menurunkan tingkat inflasi"
-        ],
-        "correct_answer": "Meningkatkan permintaan agregat",
-        "explanation": "Ekspansi fiskal (menaikkan belanja negara / menurunkan pajak) mendorong permintaan agregat."
-    },
-    {
-        "id": 2,
-        "type": "mc",
-        "question": "Dalam neraca perusahaan manufaktur, urutan persediaan yang benar adalah...",
-        "options": [
-            "Barang jadi – Barang dalam proses – Bahan baku",
-            "Bahan baku – Barang dalam proses – Barang jadi",
-            "Barang dalam proses – Bahan baku – Barang jadi",
-            "Barang jadi – Bahan baku – Barang dalam proses"
-        ],
-        "correct_answer": "Bahan baku – Barang dalam proses – Barang jadi",
-        "explanation": "Urutan alur produksi: Bahan baku → Barang dalam proses → Barang jadi."
-    },
-    {
-        "id": 3,
-        "type": "mc",
-        "question": "Tarif overhead pabrik di muka (predetermined overhead rate) dihitung dengan...",
-        "options": [
-            "BOP aktual / Jam mesin aktual",
-            "BOP taksiran / Aktivitas operasional taksiran",
-            "BOP aktual / Aktivitas taksiran",
-            "Produksi aktual / BOP taksiran"
-        ],
-        "correct_answer": "BOP taksiran / Aktivitas operasional taksiran",
-        "explanation": "Tarif di muka = BOP taksiran ÷ dasar pembebanan taksiran (jam TKL, jam mesin, dll)."
-    },
-    {
-        "id": 4,
-        "type": "short",  # jawaban singkat
-        "question": "Tuliskan urutan penyajian persediaan di neraca perusahaan manufaktur!",
-        "correct_answer": "bahan baku - barang dalam proses - barang jadi",
-        "explanation": "Jawaban ideal: Bahan baku – Barang dalam proses – Barang jadi."
-    },
-]
+# ======================================
+# 🔗 URL JSON GITHUB (GANTI DENGAN PUNYAMU)
+# ======================================
+URL_SOAL_GITHUB = (
+    "https://raw.githubusercontent.com/USERNAME/NAMA_REPO/main/soal.json"
+    # contoh: "https://raw.githubusercontent.com/ilhamdank/quiz-uas/main/soal.json"
+)
+
+
+# ======================================
+# 📥 FUNGSI LOAD SOAL DARI GITHUB (JSON)
+# ======================================
+def load_questions_from_github():
+    try:
+        with urllib.request.urlopen(URL_SOAL_GITHUB) as response:
+            data = response.read().decode("utf-8")
+        questions = json.loads(data)
+        # pastikan minimal struktur yang diharapkan
+        if isinstance(questions, list):
+            return questions
+        else:
+            st.warning("Format JSON soal tidak berupa list. Pastikan file soal.json berisi array [].")
+            return []
+    except Exception as e:
+        st.error(f"Gagal memuat soal dari GitHub: {e}")
+        return []
 
 
 # ============================
 # 🔁 INISIALISASI STATE
 # ============================
 if "questions" not in st.session_state:
-    st.session_state["questions"] = list(default_questions)
+    st.session_state["questions"] = load_questions_from_github()
 
 if "submitted" not in st.session_state:
     st.session_state["submitted"] = False
@@ -75,12 +52,19 @@ def reset_submit_flag():
 st.sidebar.title("Menu")
 menu = st.sidebar.radio(
     "Pilih halaman:",
-    ("Kerjakan Soal", "Tambah Soal"),
-    on_change=reset_submit_flag
+    ("Kerjakan Soal", "Tambah / Hapus Soal"),
+    on_change=reset_submit_flag,
 )
+
+if st.sidebar.button("🔄 Muat ulang soal dari GitHub"):
+    st.session_state["questions"] = load_questions_from_github()
+    st.session_state["submitted"] = False
+    st.sidebar.success("Soal berhasil dimuat ulang dari GitHub.")
+    st.rerun()
 
 st.sidebar.markdown("---")
 st.sidebar.write(f"Jumlah soal saat ini: **{len(st.session_state['questions'])}**")
+st.sidebar.caption("Catatan: perubahan di sini tidak otomatis tersimpan ke GitHub.")
 
 
 # ============================
@@ -89,37 +73,44 @@ st.sidebar.write(f"Jumlah soal saat ini: **{len(st.session_state['questions'])}*
 def page_kerjakan_soal():
     st.title("Kerjakan Soal Ujian 🧠")
     st.write(
+        "Sumber soal: **JSON di GitHub**.\n\n"
         "Kerjakan semua soal dulu, lalu klik **Periksa Jawaban** "
-        "untuk lihat mana yang benar/salah dan nilai akhirnya."
+        "untuk melihat mana yang benar/salah dan nilai akhirnya."
     )
 
     questions = st.session_state["questions"]
+    if not questions:
+        st.warning("Belum ada soal yang dimuat. Coba klik 'Muat ulang soal dari GitHub' di sidebar.")
+        return
+
     correct_count = 0
     total_questions = len(questions)
 
     for q in questions:
-        st.markdown(f"### Soal {q['id']}")
-        st.write(q["question"])
+        st.markdown(f"### Soal {q.get('id', '?')}")
+        st.write(q.get("question", ""))
 
+        q_type = q.get("type", "mc")
         user_answer = None
 
-        if q["type"] == "mc":
+        if q_type == "mc":
+            options = q.get("options", [])
             user_answer = st.radio(
                 "Pilih jawaban:",
-                q["options"],
-                key=f"q{q['id']}",
-                index=None
+                options,
+                key=f"q{q.get('id')}",
+                index=None,
             )
-        elif q["type"] == "short":
+        else:  # short
             user_answer = st.text_area(
                 "Jawabanmu:",
-                key=f"q{q['id']}",
-                height=60
+                key=f"q{q.get('id')}",
+                height=60,
             )
 
         if st.session_state["submitted"]:
             ua = (user_answer or "").strip().lower()
-            ca = (q["correct_answer"] or "").strip().lower()
+            ca = (q.get("correct_answer", "") or "").strip().lower()
 
             if ua == "":
                 st.markdown("❗ **Belum dijawab.**")
@@ -129,8 +120,9 @@ def page_kerjakan_soal():
             else:
                 st.markdown("❌ **Salah**")
 
-            if q.get("explanation"):
-                st.markdown(f"> ℹ️ *{q['explanation']}*")
+            explanation = q.get("explanation", "")
+            if explanation:
+                st.markdown(f"> ℹ️ *{explanation}*")
 
         st.markdown("---")
 
@@ -147,22 +139,22 @@ def page_kerjakan_soal():
 
 
 # ============================
-# ➕ HALAMAN 2: TAMBAH & HAPUS SOAL
+# ➕ HALAMAN 2: TAMBAH & HAPUS SOAL (SESSION ONLY)
 # ============================
-def page_tambah_soal():
+def page_tambah_hapus_soal():
     st.title("Tambah / Hapus Soal ✍️")
     st.write(
-        "Di sini kamu bisa menambah soal baru dan juga menghapus soal yang sudah ada. "
-        "Soal yang ditambahkan langsung muncul di menu **Kerjakan Soal**."
+        "Perubahan di halaman ini **hanya tersimpan di memori (session)**.\n"
+        "Kalau mau permanen, kamu perlu mengedit file `soal.json` di GitHub secara manual."
     )
 
     # ---------- FORM TAMBAH SOAL ----------
-    st.subheader("Tambah Soal Baru")
+    st.subheader("Tambah Soal Baru (session)")
 
     with st.form("form_tambah_soal"):
         tipe = st.selectbox(
             "Jenis soal",
-            ("Pilihan Ganda", "Jawaban Singkat")
+            ("Pilihan Ganda", "Jawaban Singkat"),
         )
         question_text = st.text_area("Teks soal", height=80)
 
@@ -182,7 +174,7 @@ def page_tambah_soal():
 
             kunci_huruf = st.selectbox(
                 "Jawaban benar (pilih huruf)",
-                ("A", "B", "C", "D")
+                ("A", "B", "C", "D"),
             )
 
             index_mapping = {"A": 0, "B": 1, "C": 2, "D": 3}
@@ -196,7 +188,7 @@ def page_tambah_soal():
         else:  # Jawaban singkat
             correct_answer = st.text_input(
                 "Jawaban yang benar (ideal)",
-                placeholder="Contoh: bahan baku - barang dalam proses - barang jadi"
+                placeholder="Contoh: bahan baku - barang dalam proses - barang jadi",
             )
 
         submitted = st.form_submit_button("Tambah Soal")
@@ -215,13 +207,14 @@ def page_tambah_soal():
                     return
 
                 new_question = {
-                    "id": max([q["id"] for q in st.session_state["questions"]]) + 1
-                    if st.session_state["questions"] else 1,
+                    "id": max([q.get("id", 0) for q in st.session_state["questions"]]) + 1
+                    if st.session_state["questions"]
+                    else 1,
                     "type": "mc",
                     "question": question_text.strip(),
                     "options": options,
                     "correct_answer": correct_answer.strip(),
-                    "explanation": explanation.strip()
+                    "explanation": explanation.strip(),
                 }
 
             else:  # Jawaban singkat
@@ -230,22 +223,23 @@ def page_tambah_soal():
                     return
 
                 new_question = {
-                    "id": max([q["id"] for q in st.session_state["questions"]]) + 1
-                    if st.session_state["questions"] else 1,
+                    "id": max([q.get("id", 0) for q in st.session_state["questions"]]) + 1
+                    if st.session_state["questions"]
+                    else 1,
                     "type": "short",
                     "question": question_text.strip(),
                     "correct_answer": correct_answer.strip().lower(),
-                    "explanation": explanation.strip()
+                    "explanation": explanation.strip(),
                 }
 
             st.session_state["questions"].append(new_question)
             st.success(f"Soal baru berhasil ditambahkan (ID {new_question['id']}).")
-            st.info("Coba lihat ke bagian bawah atau buka menu **Kerjakan Soal**.")
+            st.info("Soal ini hanya tersimpan di session. Untuk permanen, tambahkan juga ke soal.json di GitHub.")
 
     st.markdown("---")
 
-    # ---------- TABEL / DAFTAR SOAL + HAPUS ----------
-    st.subheader("Daftar Soal Saat Ini")
+    # ---------- DAFTAR SOAL + HAPUS ----------
+    st.subheader("Daftar Soal Saat Ini (session)")
 
     if not st.session_state["questions"]:
         st.info("Belum ada soal.")
@@ -254,17 +248,18 @@ def page_tambah_soal():
     for q in st.session_state["questions"]:
         col1, col2, col3 = st.columns([6, 2, 2])
         with col1:
-            potong = (q["question"][:90] + "…") if len(q["question"]) > 90 else q["question"]
-            st.markdown(f"**ID {q['id']}** – {potong}")
+            text = q.get("question", "")
+            potong = (text[:90] + "…") if len(text) > 90 else text
+            st.markdown(f"**ID {q.get('id', '?')}** – {potong}")
         with col2:
-            jenis = "Pilihan Ganda" if q["type"] == "mc" else "Jawaban Singkat"
+            jenis = "Pilihan Ganda" if q.get("type") == "mc" else "Jawaban Singkat"
             st.markdown(f"_{jenis}_")
         with col3:
-            if st.button("Hapus", key=f"hapus-{q['id']}"):
+            if st.button("Hapus", key=f"hapus-{q.get('id')}"):
                 st.session_state["questions"] = [
-                    qq for qq in st.session_state["questions"] if qq["id"] != q["id"]
+                    qq for qq in st.session_state["questions"] if qq.get("id") != q.get("id")
                 ]
-                st.success(f"Soal dengan ID {q['id']} telah dihapus.")
+                st.success(f"Soal dengan ID {q.get('id')} telah dihapus (di session).")
                 st.rerun()
 
 
@@ -273,5 +268,5 @@ def page_tambah_soal():
 # ============================
 if menu == "Kerjakan Soal":
     page_kerjakan_soal()
-elif menu == "Tambah Soal":
-    page_tambah_soal()
+elif menu == "Tambah / Hapus Soal":
+    page_tambah_hapus_soal()
