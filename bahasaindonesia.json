@@ -5,5 +5,12 @@
     "question": "Senikmat-nikmatnya makan di luar lebih nikmat makan di?",
     "correct_answer": "telan",
     "explanation": "Telan"
+  },
+  {
+    "id": 2,
+    "type": "short",
+    "question": "Cermin jika dilap jadi?",
+    "correct_answer": "cermin",
+    "explanation": "Ya tetap jadi Cermin dong, emang mau jadi apa?"
   }
 ]
