@@ -136,7 +136,7 @@ def page_kerjakan_soal():
 
     if st.button("Periksa Jawaban"):
         st.session_state["submitted"] = True
-        st.experimental_rerun()
+        st.rerun()
 
     if st.session_state["submitted"]:
         score = (correct_count / total_questions) * 100 if total_questions > 0 else 0
@@ -261,12 +261,11 @@ def page_tambah_soal():
             st.markdown(f"_{jenis}_")
         with col3:
             if st.button("Hapus", key=f"hapus-{q['id']}"):
-                # hapus soal dengan ID ini
                 st.session_state["questions"] = [
                     qq for qq in st.session_state["questions"] if qq["id"] != q["id"]
                 ]
                 st.success(f"Soal dengan ID {q['id']} telah dihapus.")
-                st.experimental_rerun()
+                st.rerun()
 
 
 # ============================
