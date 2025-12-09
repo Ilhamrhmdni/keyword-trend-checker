@@ -908,5 +908,18 @@
     ],
     "correct_answer": "",
     "explanation": ""
+  },
+  {
+    "id": 71,
+    "type": "mc",
+    "question": "Yang sering mendapat nilai 100 saat ulangan yaitu?",
+    "options": [
+      "Guru",
+      "Mahasiswa",
+      "Kertas",
+      "Meja"
+    ],
+    "correct_answer": "Kertas",
+    "explanation": "Kertas"
   }
 ]
